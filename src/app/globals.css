@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-border: var(--border);
+  --color-border-active: var(--border-active);
+  --color-background: var(--bg-dark);
+  --color-foreground: var(--text-primary);
+
+  --color-primary: var(--green);
+  --color-primary-foreground: #ffffff;
+  
+  --color-accent: var(--orange);
+  --color-accent-foreground: #ffffff;
+  
+  --color-destructive: var(--red);
+  --color-destructive-foreground: #ffffff;
+
+  --color-muted: var(--text-muted);
+  --color-muted-foreground: var(--text-secondary);
+
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--text-primary);
+
+  /* New V2 Tokens */
+  --color-bg-darkest: var(--bg-darkest);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-blue: var(--blue);
+  
+  --color-green-dim: var(--green-dim);
+  --color-red-dim: var(--red-dim);
+  --color-orange-dim: var(--orange-dim);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root {
+  /* Background layers */
+  --bg-darkest:    #06080d;
+  --bg-dark:       #0a0e17;
+  --bg-card:       #111827;
+  --bg-card-hover: #1a2235;
+  --bg-elevated:   #1f2937;
+
+  /* Accent colors */
+  --green:         #10b981;
+  --green-dim:     #064e3b;
+  --red:           #ef4444;
+  --red-dim:       #450a0a;
+  --orange:        #f59e0b;
+  --orange-dim:    #451a03;
+  --blue:          #3b82f6;
+
+  /* Text */
+  --text-primary:  #f9fafb;
+  --text-secondary:#9ca3af;
+  --text-muted:    #4b5563;
+
+  /* Borders */
+  --border:        #1f2937;
+  --border-active: #374151;
+  
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
