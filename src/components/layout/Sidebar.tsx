@@ -94,7 +94,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-border/50 bg-[var(--bg-darkest)] mt-auto">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Status</span>
-          <span className="text-xs font-mono text-[var(--text-muted)]">v1.0.0</span>
+          <span className="text-xs font-mono text-[var(--text-muted)]">v0.7.0</span>
         </div>
 
         <div className="flex items-center justify-between rounded-md bg-[var(--bg-card)] p-3 border border-border/50">

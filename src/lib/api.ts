@@ -1,4 +1,10 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://46.4.229.254:8000";
+// In production: route through Next.js proxy to avoid HTTPS→HTTP Mixed Content
+// Proxy at /api/proxy/[...path] forwards verbatim: /api/proxy/api/status → http://bot/api/status
+const isDev = process.env.NODE_ENV === "development";
+export const API_BASE = isDev
+  ? (process.env.NEXT_PUBLIC_API_URL || "http://46.4.229.254:8000")
+  : "/api/proxy";
+
 
 export const fetcher = async (url: string) => {
   const res = await fetch(url);
