@@ -35,19 +35,13 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
       await upsertTokenConfig(actor, symbol, !currentEnabled);
       
       // 2. Calculate new token list for bot
-      // We want to combine DEFAULT_TOKENS with Supabase state, but filter by enabled
-      // For this implementation, we take all currently enabled tokens from Supabase, 
-      // EXCEPT the one we just toggled (we use its NEW state).
+      let newEnabledList = [...botEnabledTokens];
+      if (currentEnabled) {
+        newEnabledList = newEnabledList.filter(t => t !== symbol);
+      } else {
+        newEnabledList.push(symbol);
+      }
       
-      const supaconfigMap = new Map(configs.map(c => [c.symbol.toUpperCase(), c.enabled]));
-      supaconfigMap.set(symbol.toUpperCase(), !currentEnabled);
-      
-      const newEnabledList = DEFAULT_TOKENS.filter(t => {
-        // If it's in Supabase, use Supabase value. If not, default to true or false?
-        // Let's assume default is ENABLED if not found in Supabase.
-        return supaconfigMap.has(t) ? supaconfigMap.get(t) : true;
-      });
-
       const grid_tokens = newEnabledList.join(",");
 
       // 3. Update Bot Engine
@@ -69,7 +63,7 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
 
   if (!actor) return null;
 
-  const configMap = new Map(configs.map(c => [c.symbol.toUpperCase(), c.enabled]));
+  // Not relying purely on aux token_configs anymore, using the true bot settings string
 
   return (
     <Card className="bg-[var(--bg-card)] border-[var(--border)] relative overflow-hidden">
@@ -94,7 +88,7 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
       <CardContent className="p-6">
         <div className="space-y-3">
           {DEFAULT_TOKENS.map((symbol) => {
-            const isEnabled = configMap.has(symbol) ? configMap.get(symbol)! : true;
+            const isEnabled = botEnabledTokens.includes(symbol);
             const isProcessing = toggling === symbol;
             
             return (

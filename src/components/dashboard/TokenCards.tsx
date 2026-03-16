@@ -65,16 +65,18 @@ export function TokenCards() {
     return { val: 0.0, up: true };
   }
 
+  const DISPLAY_TOKENS = ["XPR", "METAL", "LOAN"];
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-      {Object.entries(status.grid_tokens)
-         .filter(([token]) => token !== "XMD")
-         .map(([token, data]) => {
+      {DISPLAY_TOKENS.map((token) => {
          const mockChange = getMock24h(token);
+         const data = status.grid_tokens[token];
+         const isEnabled = !!data;
          const gridData = grids.find(g => g?.token === token);
          
-         const isOOR = data.grid_status === "oor";
-         const isActive = data.grid_status === "active";
+         const isOOR = data?.grid_status === "oor";
+         const isActive = isEnabled && data?.active;
          
          let minGridPrice = Infinity;
          let maxGridPrice = 0;
@@ -88,13 +90,13 @@ export function TokenCards() {
          
          const rangeString = gridData?.orders && gridData.orders.length > 0 && isFinite(minGridPrice) && maxGridPrice > 0
             ? `${formatPrice(minGridPrice, token)} - ${formatPrice(maxGridPrice, token)}`
-            : "Loading range...";
+            : isEnabled ? "Loading range..." : "Grid Disabled";
 
          return (
-           <Link href={`/grids?token=${token}`} key={token} className="block group">
+           <Link href={`/grids?token=${token}`} key={token} className={cn("block group", !isEnabled && "opacity-75 grayscale")}>
              <Card className="h-full bg-[var(--bg-card)] border-[var(--border)] transition-all hover:border-[var(--border-active)] hover:bg-[var(--bg-card-hover)] relative overflow-hidden">
                {/* Decorative active indicator */}
-               {data.active && !isOOR && (
+               {isActive && !isOOR && (
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[var(--blue)] to-[var(--green)] opacity-70"></div>
                )}
                {isOOR && (
@@ -108,7 +110,9 @@ export function TokenCards() {
                        <span className="text-sm font-medium text-[var(--text-secondary)] tracking-wider">
                          {token}
                        </span>
-                       {!data.active ? (
+                       {!isEnabled ? (
+                         <span className="shrink-0 text-[10px] bg-[var(--bg-darkest)] border border-[var(--border)] text-[var(--text-muted)] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Inactive</span>
+                       ) : !data.active ? (
                          <span className="shrink-0 text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Paused</span>
                        ) : isOOR ? (
                          <span className="shrink-0 text-[10px] bg-[var(--orange)]/20 text-[var(--orange)] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-1">
@@ -117,7 +121,7 @@ export function TokenCards() {
                        ) : null}
                      </div>
                      <h3 className="font-bold text-3xl tracking-tight font-mono text-white truncate">
-                       {formatPrice(data.current_price, token)}
+                       {data?.current_price ? formatPrice(data.current_price, token) : "$---"}
                      </h3>
                      <div className="text-xs font-mono text-[var(--text-secondary)] mt-1 truncate">
                        {rangeString}
@@ -142,10 +146,12 @@ export function TokenCards() {
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                         <Grid2X2 className="size-3.5" />
-                        <span>{data.bullets_buy + data.bullets_sell} bullets</span>
+                        <span>{isEnabled ? (data.bullets_buy + data.bullets_sell) : 0} bullets</span>
                       </div>
                       <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
-                         {isOOR ? (
+                         {!isEnabled ? (
+                            <><span className="size-1.5 rounded-full bg-[var(--border)]" /> Inactive</>
+                         ) : isOOR ? (
                             <><span className="size-1.5 rounded-full bg-[var(--orange)] animate-pulse" /> Out of Range</>
                          ) : data.active ? (
                             <><span className="size-1.5 rounded-full bg-[var(--green)]" /> Active</>
@@ -156,8 +162,8 @@ export function TokenCards() {
                     </div>
                     
                     <div className="flex items-center justify-between text-xs sm:text-sm font-mono mt-1">
-                      <span className={data.today_profit > 0 ? "text-[var(--green)]" : "text-[var(--text-secondary)]"}>
-                        Today: {data.today_profit > 0 ? `+${formatUsd(data.today_profit)}` : "$0.00"}
+                      <span className={isEnabled && data.today_profit > 0 ? "text-[var(--green)]" : "text-[var(--text-secondary)]"}>
+                        Today: {isEnabled && data.today_profit > 0 ? `+${formatUsd(data.today_profit)}` : "$0.00"}
                       </span>
                       <span className={(gridData?.total_profit_usd || 0) > 0 ? "text-[var(--green)]" : "text-[var(--text-secondary)]"}>
                         Total: {(gridData?.total_profit_usd || 0) > 0 ? `+${formatUsd(gridData!.total_profit_usd)}` : "$0.00"}
