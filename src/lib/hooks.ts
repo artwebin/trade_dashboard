@@ -118,7 +118,7 @@ export interface MarketData {
 
 export function useMarketData() {
   const { data, error, isLoading, mutate } = useSWR<{ market: Record<string, MarketData> }>(
-    'https://watchtower-api.xprdata.org/api/market',
+    '/api/market',
     fetcher,
     { refreshInterval: 60000, shouldRetryOnError: false }
   );
