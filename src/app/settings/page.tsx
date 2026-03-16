@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSettings } from "@/lib/hooks";
+import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
+  const { session } = useAuth();
   const { settings, isLoading, mutate } = useSettings();
   const [needsRestart, setNeedsRestart] = useState(false);
   
@@ -102,7 +104,7 @@ export default function SettingsPage() {
         stop_loss_percent: settings.stop_loss_percent
       });
       setCredForm({
-        account: settings.xpr_account || "",
+        account: session?.actor || settings.xpr_account || "",
         privateKey: "" // Don't populate masked key into input
       });
       setTgForm({
@@ -377,7 +379,7 @@ export default function SettingsPage() {
                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Trading Account Name</label>
                  <input 
                    type="text" 
-                   value={credForm.account}
+                   value={session?.actor || credForm.account}
                    readOnly
                    disabled
                    className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-muted)] opacity-70 cursor-not-allowed focus:outline-none font-mono"
