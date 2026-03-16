@@ -92,7 +92,7 @@ export function useAllGrids(tokens: string[]) {
 
 // 60 second polling for price history sparklines
 export function usePriceHistory(token: string, hours: number = 24) {
-  const { data, error, isLoading, mutate } = useSWR<{ prices: { timestamp: number, price: number }[] }>(
+  const { data, error, isLoading, mutate } = useSWR<{ prices: { time: number, value: number }[] }>(
     `${API_BASE}/api/prices/${token}/history?hours=${hours}`,
     fetcher,
     { refreshInterval: 60000, shouldRetryOnError: false }
@@ -100,6 +100,31 @@ export function usePriceHistory(token: string, hours: number = 24) {
 
   return {
     history: data?.prices || [],
+    isLoading,
+    isError: error,
+    mutate
+  };
+}
+
+export interface MarketData {
+  token: string;
+  price: number;
+  open_24h: number;
+  high_24h: number;
+  low_24h: number;
+  change_24h: number;
+  volume_24h: number;
+}
+
+export function useMarketData() {
+  const { data, error, isLoading, mutate } = useSWR<{ market: Record<string, MarketData> }>(
+    'https://watchtower-api.xprdata.org/api/market',
+    fetcher,
+    { refreshInterval: 60000, shouldRetryOnError: false }
+  );
+
+  return {
+    market: data?.market || {},
     isLoading,
     isError: error,
     mutate

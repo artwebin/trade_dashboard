@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Coins, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_TOKENS = ["XPR", "METAL", "LOAN", "XMD"];
+const DEFAULT_TOKENS = ["XPR", "METAL", "LOAN"];
 
 export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => void }) {
   const { session } = useAuth();
