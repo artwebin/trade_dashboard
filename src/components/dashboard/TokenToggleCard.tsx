@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useTokenConfigs, useSettings } from "@/lib/hooks";
-import { upsertTokenConfig } from "@/lib/supabase";
+import { useSettings } from "@/lib/hooks";
 import { updateSettingsGrid } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Coins, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -14,7 +13,6 @@ const DEFAULT_TOKENS = ["XPR", "METAL", "LOAN", "XMD"];
 export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => void }) {
   const { session } = useAuth();
   const actor = session?.actor;
-  const { configs, isLoading: loadingConfigs, mutate: mutateConfigs } = useTokenConfigs(actor);
   const { settings, mutate: mutateSettings } = useSettings();
   
   const [toggling, setToggling] = useState<string | null>(null);
@@ -31,10 +29,7 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
     setSuccess(false);
 
     try {
-      // 1. Update Supabase
-      await upsertTokenConfig(actor, symbol, !currentEnabled);
-      
-      // 2. Calculate new token list for bot
+      // Calculate new token list for bot
       let newEnabledList = [...botEnabledTokens];
       if (currentEnabled) {
         newEnabledList = newEnabledList.filter(t => t !== symbol);
@@ -44,11 +39,10 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
       
       const grid_tokens = newEnabledList.join(",");
 
-      // 3. Update Bot Engine
+      // Update Bot Engine & Profile DB
       await updateSettingsGrid({ grid_tokens });
       
-      // 4. Refresh local state
-      await mutateConfigs();
+      // Refresh local state
       await mutateSettings();
       
       setSuccess(true);
@@ -62,8 +56,6 @@ export function TokenToggleCard({ onConfigChange }: { onConfigChange?: () => voi
   };
 
   if (!actor) return null;
-
-  // Not relying purely on aux token_configs anymore, using the true bot settings string
 
   return (
     <Card className="bg-[var(--bg-card)] border-[var(--border)] relative overflow-hidden">

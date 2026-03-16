@@ -21,9 +21,13 @@ export function TokenTabs() {
   return (
     <div className="w-full mt-6">
       <Tabs value={selectedToken} onValueChange={setSelectedToken} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px] mb-6">
+        <TabsList className="flex w-full max-w-[450px] mb-8 bg-[var(--bg-darkest)] p-1.5 rounded-xl border border-[var(--border)] shadow-inner">
           {tokens.map((token) => (
-             <TabsTrigger key={token} value={token} className="font-semibold uppercase tracking-wider">
+             <TabsTrigger 
+               key={token} 
+               value={token} 
+               className="flex-1 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest transition-all data-[state=active]:bg-[var(--blue)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:scale-[1.02] data-[state=inactive]:text-[var(--text-secondary)] data-[state=inactive]:hover:bg-[var(--bg-elevated)] data-[state=inactive]:hover:text-white"
+             >
                {token}
              </TabsTrigger>
           ))}
