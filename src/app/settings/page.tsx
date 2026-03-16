@@ -378,9 +378,9 @@ export default function SettingsPage() {
                  <input 
                    type="text" 
                    value={credForm.account}
-                   onChange={(e) => setCredForm({...credForm, account: e.target.value})}
-                   placeholder="e.g. tradingbot1"
-                   className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                   readOnly
+                   disabled
+                   className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-muted)] opacity-70 cursor-not-allowed focus:outline-none font-mono"
                  />
                </div>
                
