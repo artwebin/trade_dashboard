@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBotStatus, useGridStatus } from "@/lib/hooks";
 import { formatPrice } from "@/lib/utils";
@@ -11,16 +12,36 @@ import { Card } from "./ui/card";
 
 export function TokenTabs() {
   const { status } = useBotStatus();
-  const [selectedToken, setSelectedToken] = useState<string>("XPR");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const tokens = ["XPR", "METAL", "LOAN"];
+  
+  const tokenParam = searchParams.get("token");
+  const initialToken = tokenParam && tokens.includes(tokenParam.toUpperCase()) 
+    ? tokenParam.toUpperCase() 
+    : "XPR";
+
+  const [selectedToken, setSelectedToken] = useState<string>(initialToken);
+
+  useEffect(() => {
+    if (tokenParam && tokens.includes(tokenParam.toUpperCase()) && tokenParam.toUpperCase() !== selectedToken) {
+      setSelectedToken(tokenParam.toUpperCase());
+    }
+  }, [tokenParam]);
+
+  const handleTabChange = (val: string) => {
+    setSelectedToken(val);
+    router.replace(`${pathname}?token=${val}`, { scroll: false });
+  };
 
   // Fetch the detailed grid status for our selected active token
   const { grid, isLoading } = useGridStatus(selectedToken);
 
-  const tokens = ["XPR", "METAL", "LOAN"];
-
   return (
     <div className="w-full mt-6">
-      <Tabs value={selectedToken} onValueChange={setSelectedToken} className="w-full">
+      <Tabs value={selectedToken} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex w-full max-w-[450px] mb-8 bg-[var(--bg-darkest)] p-1.5 rounded-xl border border-[var(--border)] shadow-inner">
           {tokens.map((token) => (
              <TabsTrigger 

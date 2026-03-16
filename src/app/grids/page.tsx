@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useBotStatus } from "@/lib/hooks";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { TokenTabs } from "@/components/TokenTabs";
@@ -16,7 +17,9 @@ export default function GridsPage() {
       />
       
       {/* V2 redesign moved TokenTabs to its own page instead of on the Index */}
-      <TokenTabs />
+      <Suspense fallback={<div className="h-64 animate-pulse bg-[var(--bg-card)] rounded-xl mt-6"></div>}>
+        <TokenTabs />
+      </Suspense>
     </div>
   );
 }
