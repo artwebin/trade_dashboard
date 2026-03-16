@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import { supabase, getTokenConfigs, TokenConfig } from "./supabase";
 import { 
   API_BASE, 
   fetcher, 
@@ -115,6 +116,20 @@ export function useSettings() {
 
   return {
     settings: data,
+    isLoading,
+    isError: error,
+    mutate
+  };
+}
+
+export function useTokenConfigs(xprAccount: string | undefined) {
+  const { data, error, isLoading, mutate } = useSWR<TokenConfig[]>(
+    xprAccount ? `token-configs-${xprAccount}` : null,
+    () => getTokenConfigs(xprAccount!)
+  );
+
+  return {
+    configs: data || [],
     isLoading,
     isError: error,
     mutate

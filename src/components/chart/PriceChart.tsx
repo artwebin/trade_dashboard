@@ -13,6 +13,7 @@ export function PriceChart() {
   
   const { status } = useBotStatus();
   const [activeToken, setActiveToken] = useState<string>("XPR");
+  const [timeframe, setTimeframe] = useState<string>("1D");
   
   // Real grid levels from backend
   const { grid } = useGridStatus(activeToken);
@@ -20,7 +21,7 @@ export function PriceChart() {
   // Switch token based on available tokens safely without triggering effect loops
   useEffect(() => {
     if (status?.grid_tokens) {
-       const keys = Object.keys(status.grid_tokens);
+       const keys = Object.keys(status.grid_tokens).filter(k => k !== "XMD");
        if (keys.length > 0 && !keys.includes(activeToken)) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setActiveToken(keys[0]);
@@ -82,18 +83,25 @@ export function PriceChart() {
       crosshairMarkerBackgroundColor: "#3b82f6",
     });
 
+    let days = 1;
+    let points = 100;
+    if (timeframe === '1H') { days = 1/24; points = 60; }
+    else if (timeframe === '4H') { days = 4/24; points = 120; }
+    else if (timeframe === '1D') { days = 1; points = 100; }
+    else if (timeframe === '1W') { days = 7; points = 200; }
+
     // Mock initial data since GET /api/price-history is pending
     const data = [];
-    let time = Math.floor(Date.now() / 1000) - 86400 * 30; // 30 days ago
+    let time = Math.floor(Date.now() / 1000) - 86400 * days;
     
     // Starting price vaguely accurate to activeToken roughly
     let price = activeToken === 'XPR' ? 0.0022 : activeToken === 'METAL' ? 0.13 : 0.00027;
     
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < points; i++) {
        // Random walk
        price += price * (Math.random() - 0.5) * 0.05;
        data.push({ time: time as import('lightweight-charts').Time, value: price });
-       time += 86400 / 10; // add a few hours
+       time += Math.floor((86400 * days) / points);
     }
     
     if (seriesRef.current) {
@@ -121,7 +129,7 @@ export function PriceChart() {
         chartRef.current = null;
       }
     };
-  }, [activeToken]);
+  }, [activeToken, timeframe]);
 
   // Inject Grid Levels dynamically when we fetch /api/grid
   useEffect(() => {
@@ -166,7 +174,9 @@ export function PriceChart() {
               onChange={(e) => setActiveToken(e.target.value)}
               className="bg-[var(--bg-darkest)] border border-border/50 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--blue)] font-bold"
             >
-              {Object.keys(status?.grid_tokens || { 'XPR': 1, 'METAL': 1, 'LOAN': 1 }).map(t => (
+              {Object.keys(status?.grid_tokens || { 'XPR': 1, 'METAL': 1, 'LOAN': 1 })
+                .filter(t => t !== "XMD")
+                .map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
@@ -185,12 +195,13 @@ export function PriceChart() {
             </div>
             
             <div className="flex items-center gap-1 bg-[var(--bg-darkest)] p-1 rounded-lg border border-border/50">
-               {['1H', '4H', '1D', '1W'].map((tf, i) => (
+               {['1H', '4H', '1D', '1W'].map((tf) => (
                  <button 
                    key={tf} 
+                   onClick={() => setTimeframe(tf)}
                    className={cn(
                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                     i === 2 ? "bg-[var(--bg-elevated)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-white"
+                     tf === timeframe ? "bg-[var(--bg-elevated)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:text-white"
                    )}
                  >
                    {tf}

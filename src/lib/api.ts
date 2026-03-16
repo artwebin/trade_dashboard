@@ -28,7 +28,8 @@ export interface BotStatus {
   swing_tokens: string[];
   max_exposure_usd: number;
   timestamp: number;
-  started_at: number;
+  bot_started_at: number;
+  api_started_at: number;
 }
 
 export interface GridOrder {
@@ -138,12 +139,11 @@ export async function updateSettingsGrid(params: {
   stop_loss_percent?: number;
   grid_tokens?: string;
 }) {
-  const q = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined) q.append(k, String(v));
+  const res = await fetch(`${API_BASE}/api/settings/grid`, { 
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
   });
-  
-  const res = await fetch(`${API_BASE}/api/settings/grid?${q.toString()}`, { method: 'PUT' });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to update grid settings');
@@ -165,7 +165,11 @@ export async function updateSettingsCredentials(xpr_account: string, xpr_private
 }
 
 export async function updateSettingsTelegram(bot_token: string, chat_id: string) {
-  const res = await fetch(`${API_BASE}/api/settings/telegram?bot_token=${bot_token}&chat_id=${chat_id}`, { method: 'PUT' });
+  const res = await fetch(`${API_BASE}/api/settings/telegram`, { 
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bot_token, chat_id })
+  });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to update telegram settings');

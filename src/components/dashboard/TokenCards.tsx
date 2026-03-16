@@ -67,7 +67,9 @@ export function TokenCards() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-      {Object.entries(status.grid_tokens).map(([token, data]) => {
+      {Object.entries(status.grid_tokens)
+         .filter(([token]) => token !== "XMD")
+         .map(([token, data]) => {
          const mockChange = getMock24h(token);
          const gridData = grids.find(g => g?.token === token);
          
@@ -102,8 +104,10 @@ export function TokenCards() {
                <CardContent className="p-5 flex flex-col justify-between h-full">
                  <div className="flex justify-between items-start mb-4">
                    <div className="min-w-0 pr-2">
-                     <h3 className="font-bold text-lg tracking-tight flex items-center gap-2 truncate">
-                       {token}
+                     <div className="flex items-center gap-2 mb-1">
+                       <span className="text-sm font-medium text-[var(--text-secondary)] tracking-wider">
+                         {token}
+                       </span>
                        {!data.active ? (
                          <span className="shrink-0 text-[10px] bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Paused</span>
                        ) : isOOR ? (
@@ -111,11 +115,11 @@ export function TokenCards() {
                            <AlertTriangle className="size-3" /> OOR
                          </span>
                        ) : null}
-                     </h3>
-                     <div className="font-mono text-xl mt-1 text-[var(--text-primary)] truncate">
-                       {formatPrice(data.current_price, token)}
                      </div>
-                     <div className="text-xs font-mono text-[var(--text-secondary)] mt-0.5 truncate">
+                     <h3 className="font-bold text-3xl tracking-tight font-mono text-white truncate">
+                       {formatPrice(data.current_price, token)}
+                     </h3>
+                     <div className="text-xs font-mono text-[var(--text-secondary)] mt-1 truncate">
                        {rangeString}
                      </div>
                    </div>

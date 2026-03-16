@@ -69,9 +69,9 @@
   --blue:          #3b82f6;
 
   /* Text */
-  --text-primary:  #f9fafb;
-  --text-secondary:#9ca3af;
-  --text-muted:    #4b5563;
+  --text-primary:  #ffffff;
+  --text-secondary:#d1d5db; /* Lighter grey for better contrast */
+  --text-muted:    #9ca3af; /* Lighter grey for better contrast */
 
   /* Borders */
   --border:        #1f2937;

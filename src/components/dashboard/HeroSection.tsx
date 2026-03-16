@@ -7,52 +7,40 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { AccountProfileCard } from "./AccountProfileCard";
 
 export function HeroSection() {
   const { status, isLoading: statusLoading } = useBotStatus();
   const { stats, isLoading: statsLoading } = useDailyStats();
-  
-  // Trades for the mini trend line under Total Profit (we need to compute cumulative profit)
   const { trades, isLoading: tradesLoading } = useRecentTrades(50);
-  
   const activeTokens = status ? Object.keys(status.grid_tokens) : [];
   const { grids, isLoading: gridsLoading } = useAllGrids(activeTokens);
-
   const [uptime, setUptime] = useState<string>("0h 0m");
 
   useEffect(() => {
-    if (!status?.started_at) return;
-    
+    if (!status?.bot_started_at) return;
     const interval = setInterval(() => {
-      // Backend timestamp in seconds
       const now = Math.floor(Date.now() / 1000);
-      let diff = now - status.started_at;
+      let diff = now - status.bot_started_at;
       if (diff < 0) diff = 0;
-      
       const hours = Math.floor(diff / 3600);
       const minutes = Math.floor((diff % 3600) / 60);
       setUptime(`${hours}h ${minutes}m`);
     }, 1000);
-    
     return () => clearInterval(interval);
-  }, [status?.started_at]);
+  }, [status?.bot_started_at]);
 
-  if (statusLoading || statsLoading || gridsLoading) {
+  if (statusLoading || statsLoading || gridsLoading || tradesLoading) {
     return (
-      <Card className="bg-[var(--bg-elevated)] border-border/40 mb-6 h-[200px] animate-pulse">
+      <Card className="bg-[var(--bg-elevated)] border-border/40 h-[200px] animate-pulse">
         <CardContent className="h-full flex items-center justify-center text-muted-foreground">
-          Initializing Hero Section...
+          Initializing...
         </CardContent>
       </Card>
     );
   }
 
-  if (!status || !stats) {
-    return null;
-  }
+  if (!status || !stats) return null;
 
-  // Calculate Exposure
   let activeExposure = 0;
   grids.forEach(g => {
     if (g?.orders && g.orders.length > 0) {
@@ -60,139 +48,138 @@ export function HeroSection() {
     }
   });
 
-  // Calculate mini trend line data
   const profitCurve = trades
     .sort((a, b) => a.timestamp - b.timestamp)
     .reduce((acc, trade) => {
       const prev = acc.length > 0 ? acc[acc.length - 1].profit : 0;
-      acc.push({
-        time: trade.timestamp,
-        profit: prev + trade.profit_usd,
-      });
+      acc.push({ time: trade.timestamp, profit: prev + trade.profit_usd });
       return acc;
     }, [] as { time: number; profit: number }[]);
 
   const isPositive = stats.total_profit_usd >= 0;
 
+  const totalRoi = status.max_exposure_usd > 0 ? (stats.total_profit_usd / status.max_exposure_usd * 100) : 0;
+  const todayRoi = status.max_exposure_usd > 0 ? (stats.today_profit_usd / status.max_exposure_usd * 100) : 0;
+  const exposurePct = status.max_exposure_usd > 0 ? (activeExposure / status.max_exposure_usd * 100) : 0;
+
   return (
-    <Card className="bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-darkest)] border-border/40 relative overflow-hidden mb-6">
-      <CardContent className="p-8 pb-6 relative z-10">
-        <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* ── Left: Stats ───────────────────────────────────── */}
-          <div className="flex-1 flex flex-col justify-between">
-            <div className="flex flex-col md:flex-row justify-between md:items-start gap-8">
-              
-              {/* Main Total Profit Area */}
-              <div className="flex-1">
-                <h2 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider mb-2">Total Profit</h2>
-                <div 
-                  className={cn(
-                    "text-5xl md:text-6xl font-bold font-mono tracking-tighter",
-                    isPositive ? "text-[var(--green)]" : "text-[var(--red)]"
-                  )}
-                  style={isPositive ? { textShadow: "0 0 30px rgba(0, 214, 143, 0.4)" } : undefined}
-                >
-                  {isPositive && "+"}{formatUsd(stats.total_profit_usd)}
-                </div>
-                
-                {/* Sparkline */}
-                <div className="h-10 w-full max-w-[300px] mt-2 opacity-80">
-                   {profitCurve.length > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                       <AreaChart data={profitCurve}>
-                         <defs>
-                           <linearGradient id="heroProfitGrad" x1="0" y1="0" x2="0" y2="1">
-                             <stop offset="5%" stopColor={isPositive ? "var(--green)" : "var(--red)"} stopOpacity={0.8}/>
-                             <stop offset="95%" stopColor={isPositive ? "var(--green)" : "var(--red)"} stopOpacity={0}/>
-                           </linearGradient>
-                         </defs>
-                         <Area 
-                           type="monotone" 
-                           dataKey="profit" 
-                           stroke={isPositive ? "var(--green)" : "var(--red)"} 
-                           fill="url(#heroProfitGrad)" 
-                           strokeWidth={2}
-                           isAnimationActive={false}
-                         />
-                       </AreaChart>
-                     </ResponsiveContainer>
-                   ) : (
-                     <div className="w-full h-full bg-gradient-to-r from-transparent via-[var(--bg-card)] to-transparent opacity-20" />
-                   )}
-                </div>
-              </div>
-
-              {/* Secondary Stats */}
-              <div className="flex gap-12 pt-2">
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Today's P&L</h3>
-                  <div className={cn(
-                    "text-2xl font-bold font-mono mt-1",
-                    stats.today_profit_usd > 0 ? "text-[var(--green)]" : 
-                    stats.today_profit_usd < 0 ? "text-[var(--red)]" : "text-white"
-                  )}>
-                    {stats.today_profit_usd > 0 && "+"}{formatUsd(stats.today_profit_usd)}
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Trades</h3>
-                  <div className="text-2xl font-bold font-mono mt-1 text-white">
-                    {stats.today_trades}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Bot Uptime</h3>
-                  <div className="text-2xl font-bold font-mono mt-1 text-white">
-                    {uptime}
-                  </div>
-                </div>
-              </div>
+    <Card className="bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-darkest)] border border-[var(--border)]/50 relative overflow-hidden shadow-sm">
+      <CardContent className="p-6 relative z-10 flex flex-col gap-6 h-full justify-between">
+        
+        {/* Row 1: Command & Status */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-[var(--text-secondary)] tracking-widest uppercase">
+            Bot Overview
+          </h2>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-start gap-1.5">
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest leading-none">
+                Mode
+              </span>
+              <Badge variant="outline" className={cn(
+                "font-bold tracking-wider px-2 py-0.5 border border-white/20",
+                status.mode === "live" ? "text-[var(--red)] border-[var(--red)]/50 bg-[var(--red)]/10" : "text-[var(--blue)] border-[var(--blue)]/50 bg-[var(--blue)]/10"
+              )}>
+                {status.mode.toUpperCase()}
+              </Badge>
             </div>
 
-            {/* Footer Bar */}
-            <div className="flex items-center gap-6 mt-8 pt-6 border-t border-[var(--border)]/50">
-              <div className="text-sm text-[var(--text-secondary)]">
-                Exposure: <span className="font-mono text-white ml-2">{formatUsd(activeExposure)} / {formatUsd(status.max_exposure_usd)}</span>
+            <div className="flex flex-col items-start gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest leading-none flex gap-1">
+                <span className="text-[var(--text-secondary)]">Status:</span>
+                <span className={(!status.grid_paused && status.bot_started_at > 0) ? "text-[var(--green)]" : "text-[var(--text-muted)] border-b border-[var(--text-muted)] border-dashed px-0.5"}>
+                  {(!status.grid_paused && status.bot_started_at > 0) ? "ON" : "OFF"}
+                </span>
+              </span>
+              <div 
+                className={cn(
+                  "w-10 h-5 rounded-full relative flex items-center p-0.5 border shadow-sm transition-colors",
+                  (!status.grid_paused && status.bot_started_at > 0) ? "bg-[var(--green)]/20 border-[var(--green)]/50 cursor-default" : "bg-[var(--bg-elevated)] border-[var(--border)] cursor-default"
+                )}
+              >
+                 <div 
+                   className={cn(
+                     "w-4 h-4 rounded-full absolute shadow-sm transition-all",
+                     (!status.grid_paused && status.bot_started_at > 0) ? "bg-[var(--green)] right-0.5" : "bg-[var(--text-muted)] left-0.5"
+                   )} 
+                 />
               </div>
-              
-              <div className="w-px h-4 bg-[var(--border)]" />
-              
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                Mode: 
-                <Badge variant="outline" className={cn(
-                  "ml-1 font-bold tracking-wider",
-                  status.mode === "live" ? "border-[var(--red)] text-[var(--red)] bg-[var(--red)]/10" : "border-[var(--blue)] text-[var(--blue)] bg-[var(--blue)]/10"
-                )}>
-                  {status.mode.toUpperCase()}
-                </Badge>
-              </div>
-              
-              <div className="w-px h-4 bg-[var(--border)]" />
+            </div>
+          </div>
+        </div>
 
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                Status: 
-                <div className="flex items-center gap-1.5 ml-1">
-                  <div className="relative flex size-2">
-                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--green)] opacity-75"></span>
-                     <span className="relative inline-flex size-2 rounded-full bg-[var(--green)]"></span>
-                  </div>
-                  <span className="font-bold text-white">ON</span>
-                </div>
+        {/* Row 2: Finance Visual Focus */}
+        <div className="grid grid-cols-2 gap-6 items-start mt-2">
+          {/* TOTAL */}
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total Profit</h3>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <div
+                className={cn(
+                  "text-4xl sm:text-5xl lg:text-6xl font-bold font-mono tracking-tighter",
+                  isPositive ? "text-[var(--green)]" : "text-[var(--red)]"
+                )}
+                style={isPositive ? { textShadow: "0 0 30px rgba(0, 214, 143, 0.2)" } : undefined}
+              >
+                {isPositive && "+"}{formatUsd(stats.total_profit_usd)}
+              </div>
+              <div className={cn(
+                "text-sm font-bold px-2 py-0.5 rounded-full",
+                totalRoi >= 0 ? "bg-[var(--green)]/15 text-[var(--green)]" : "bg-[var(--red)]/15 text-[var(--red)]"
+              )}>
+                {totalRoi >= 0 && "+"}{totalRoi.toFixed(2)}%
               </div>
             </div>
           </div>
 
-          {/* ── Divider ───────────────────────────────────────── */}
-          <div className="hidden lg:block w-px bg-[var(--border)]/40 self-stretch" />
-
-          {/* ── Right: Account Profile ─────────────────────────── */}
-          <div className="w-full lg:w-[260px] shrink-0">
-            <AccountProfileCard />
+          {/* TODAY */}
+          <div className="flex flex-col gap-1 pl-4 border-l border-[var(--border)]/50">
+            <h3 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Today's P&L</h3>
+            <div className="flex items-baseline gap-3 flex-wrap mt-1">
+              <div className={cn(
+                "text-2xl sm:text-3xl font-bold font-mono tracking-tight",
+                stats.today_profit_usd > 0 ? "text-[var(--green)]" :
+                stats.today_profit_usd < 0 ? "text-[var(--red)]" : "text-white"
+              )}>
+                {stats.today_profit_usd > 0 && "+"}{formatUsd(stats.today_profit_usd)}
+              </div>
+              <div className={cn(
+                "text-xs font-bold px-2 py-0.5 rounded-full hidden sm:block",
+                todayRoi >= 0 ? "bg-[var(--green)]/15 text-[var(--green)]" : "bg-[var(--red)]/15 text-[var(--red)]"
+              )}>
+                {todayRoi >= 0 && "+"}{todayRoi.toFixed(2)}%
+              </div>
+            </div>
           </div>
+        </div>
 
+        {/* Row 3: Operations & Risk (Mini-cards) */}
+        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[var(--border)]/50">
+           {/* Block 1: Exposure */}
+           <div className="bg-[var(--bg-darkest)]/40 rounded-lg p-3 border border-[var(--border)]/30 flex flex-col justify-center gap-2">
+              <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] font-medium uppercase tracking-wider">
+                 <span>Exposure</span>
+                 <span className="text-white font-mono">{exposurePct.toFixed(0)}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+                 <div 
+                   className="h-full bg-gradient-to-r from-[var(--blue)] to-[var(--green)] rounded-full transition-all duration-500" 
+                   style={{ width: `${Math.min(100, Math.max(0, exposurePct))}%` }} 
+                 />
+              </div>
+           </div>
+
+           {/* Block 2: Activity */}
+           <div className="bg-[var(--bg-darkest)]/40 rounded-lg p-3 border border-[var(--border)]/30 flex flex-col justify-center">
+              <span className="text-xs text-[var(--text-secondary)] font-medium uppercase tracking-wider mb-1">Trades (24h)</span>
+              <span className="text-lg font-bold font-mono text-white">{stats.today_trades}</span>
+           </div>
+
+           {/* Block 3: System */}
+           <div className="bg-[var(--bg-darkest)]/40 rounded-lg p-3 border border-[var(--border)]/30 flex flex-col justify-center">
+              <span className="text-xs text-[var(--text-secondary)] font-medium uppercase tracking-wider mb-1">Uptime</span>
+              <span className="text-lg font-bold font-mono text-white">{uptime}</span>
+           </div>
         </div>
       </CardContent>
     </Card>

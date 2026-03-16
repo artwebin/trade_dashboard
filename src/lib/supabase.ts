@@ -14,3 +14,38 @@ export interface UserProfile {
   last_login_at: string | null;
   created_at: string;
 }
+
+export interface TokenConfig {
+  id: string;
+  xpr_account: string;
+  symbol: string;
+  enabled: boolean;
+  updated_at: string;
+}
+
+export async function getTokenConfigs(xprAccount: string): Promise<TokenConfig[]> {
+  const { data, error } = await supabase
+    .from("token_config")
+    .select("*")
+    .eq("xpr_account", xprAccount);
+
+  if (error) {
+    console.error("Error fetching token configs:", error);
+    return [];
+  }
+  return data as TokenConfig[];
+}
+
+export async function upsertTokenConfig(xprAccount: string, symbol: string, enabled: boolean) {
+  const { error } = await supabase
+    .from("token_config")
+    .upsert(
+      { xpr_account: xprAccount, symbol, enabled, updated_at: new Date().toISOString() },
+      { onConflict: "xpr_account,symbol" }
+    );
+
+  if (error) {
+    console.error("Error upserting token config:", error);
+    throw error;
+  }
+}

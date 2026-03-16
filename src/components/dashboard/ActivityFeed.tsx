@@ -58,7 +58,7 @@ export function ActivityFeed() {
         </div>
       </div>
       
-      <div className="overflow-y-auto flex-1 p-2 space-y-1">
+      <div className="overflow-y-auto flex-1 p-2 space-y-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[var(--border-active)] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
         {logs.map((log) => {
           const isBuy = log.action.toUpperCase() === "BUY";
           return (

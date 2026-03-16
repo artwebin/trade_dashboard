@@ -12,10 +12,21 @@ import {
   updateMode, 
   restartBot 
 } from "@/lib/api";
+import { TokenToggleCard } from "@/components/dashboard/TokenToggleCard";
 import { 
   Settings, Link as LinkIcon, Lock, Key, 
   Bell, Play, Power, AlertTriangle, RefreshCw, Send, CheckCircle2 
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { settings, isLoading, mutate } = useSettings();
@@ -47,8 +58,7 @@ export default function SettingsPage() {
     bullet_size_usd: 100,
     max_bullets: 10,
     max_exposure_usd: 3000,
-    stop_loss_percent: 15,
-    tokens: "XPR,METAL,LOAN"
+    stop_loss_percent: 15
   });
   
   const [credForm, setCredForm] = useState({
@@ -69,6 +79,18 @@ export default function SettingsPage() {
   const [restartSuccess, setRestartSuccess] = useState(false);
   const [modeError, setModeError] = useState("");
 
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'error' | 'info' | 'warning';
+    onConfirm?: () => void;
+  }>({ isOpen: false, title: "", message: "" });
+
+  const showAlert = (title: string, message: string, type: 'error' | 'info' | 'warning' = 'error', onConfirm?: () => void) => {
+    setAlertModal({ isOpen: true, title, message, type, onConfirm });
+  };
+
   // Populate forms when settings load
   useEffect(() => {
     if (settings) {
@@ -77,8 +99,7 @@ export default function SettingsPage() {
         bullet_size_usd: settings.grid_bullet_size_usd,
         max_bullets: settings.grid_max_bullets,
         max_exposure_usd: settings.max_total_exposure_usd,
-        stop_loss_percent: settings.stop_loss_percent,
-        tokens: settings.grid_tokens
+        stop_loss_percent: settings.stop_loss_percent
       });
       setCredForm({
         account: settings.xpr_account || "",
@@ -99,13 +120,12 @@ export default function SettingsPage() {
         bullet_size_usd: gridForm.bullet_size_usd,
         max_bullets: gridForm.max_bullets,
         max_total_exposure_usd: gridForm.max_exposure_usd,
-        stop_loss_percent: gridForm.stop_loss_percent,
-        grid_tokens: gridForm.tokens
+        stop_loss_percent: gridForm.stop_loss_percent
       });
       setNeedsRestartPersistent(true);
       mutate();
     } catch (e) {
-      alert("Failed to save grid settings");
+      showAlert("Save Failed", "Failed to save grid settings", "error");
     } finally {
       setIsSavingGrid(false);
     }
@@ -114,13 +134,13 @@ export default function SettingsPage() {
   const handleCredsSave = async () => {
     setIsSavingCreds(true);
     try {
-      if (!credForm.account || !credForm.privateKey) return alert("Fill both fields");
+      if (!credForm.account || !credForm.privateKey) return showAlert("Validation Error", "Please fill both account and private key fields.", "warning");
       await updateSettingsCredentials(credForm.account, credForm.privateKey);
       setNeedsRestartPersistent(true);
       setCredForm(prev => ({ ...prev, privateKey: "" }));
       mutate();
     } catch (e) {
-      alert("Failed to save credentials");
+      showAlert("Save Failed", "Failed to save credentials", "error");
     } finally {
       setIsSavingCreds(false);
     }
@@ -129,26 +149,19 @@ export default function SettingsPage() {
   const handleTgSave = async () => {
     setIsSavingTg(true);
     try {
-      if (!tgForm.botToken || !tgForm.chatId) return alert("Fill both fields");
+      if (!tgForm.botToken || !tgForm.chatId) return showAlert("Validation Error", "Please fill both bot token and chat ID fields.", "warning");
       await updateSettingsTelegram(tgForm.botToken, tgForm.chatId);
       setNeedsRestartPersistent(true);
       setTgForm(prev => ({ ...prev, botToken: "" }));
       mutate();
     } catch (e) {
-      alert("Failed to save telegram config");
+      showAlert("Save Failed", "Failed to save telegram config", "error");
     } finally {
       setIsSavingTg(false);
     }
   };
 
-  const handleModeSwitch = async (targetMode: "paper" | "live") => {
-    if (targetMode === settings?.bot_mode) return;
-    
-    if (targetMode === "live") {
-      const confirmed = window.confirm("WARNING: Switching to LIVE mode will use REAL funds from your configured account! Are you absolutely sure?");
-      if (!confirmed) return;
-    }
-    
+  const proceedWithModeSwitch = async (targetMode: "paper" | "live") => {
     setIsSwitchingMode(true);
     setModeError("");
     try {
@@ -162,6 +175,21 @@ export default function SettingsPage() {
     }
   };
 
+  const handleModeSwitch = (targetMode: "paper" | "live") => {
+    if (targetMode === settings?.bot_mode) return;
+    
+    if (targetMode === "live") {
+      showAlert(
+        "Warning: Live Trading Module", 
+        "Switching to LIVE mode will use REAL funds from your configured account! Are you absolutely sure?", 
+        "warning",
+        () => proceedWithModeSwitch(targetMode)
+      );
+    } else {
+      proceedWithModeSwitch(targetMode);
+    }
+  };
+
   const handleRestart = async () => {
     setIsRestarting(true);
     setRestartSuccess(false);
@@ -171,7 +199,7 @@ export default function SettingsPage() {
       setRestartSuccess(true);
       setTimeout(() => setRestartSuccess(false), 3000); // clear success msg after 3s
     } catch (e) {
-      alert("Failed to restart daemon");
+      showAlert("Restart Failed", "Failed to restart daemon", "error");
     } finally {
       setIsRestarting(false);
     }
@@ -224,15 +252,15 @@ export default function SettingsPage() {
          {/* LEFT COLUMN */}
          <div className="flex flex-col gap-6">
            
-           {/* MODE SELECTOR */}
-           <Card className="bg-[var(--bg-card)] border-[var(--border)] overflow-hidden">
-             <div className="h-1 w-full bg-gradient-to-r from-transparent via-[var(--border)] to-transparent opacity-50"></div>
-             <CardContent className="p-6">
+            {/* MODE SELECTOR */}
+            <Card className="bg-[var(--bg-card)] border-[var(--border)] overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-transparent via-[var(--border)] to-transparent opacity-50"></div>
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                   <h3 className="font-bold text-lg flex items-center gap-2"><Play className="size-5 text-[var(--blue)]" /> Operating Mode</h3>
-                   <Badge variant={settings.bot_mode === "live" ? "destructive" : "default"} className="uppercase font-bold tracking-widest px-3">
-                     {settings.bot_mode} MODE
-                   </Badge>
+                    <h3 className="font-bold text-lg flex items-center gap-2"><Play className="size-5 text-[var(--blue)]" /> Operating Mode</h3>
+                    <Badge variant={settings.bot_mode === "live" ? "destructive" : "default"} className="uppercase font-bold tracking-widest px-3">
+                      {settings.bot_mode} MODE
+                    </Badge>
                 </div>
                 
                 <div className="flex p-1 bg-[var(--bg-darkest)] rounded-lg border border-[var(--border)] gap-1">
@@ -257,87 +285,79 @@ export default function SettingsPage() {
                   <AlertTriangle className="size-5 text-[var(--orange)] shrink-0 mt-0.5" />
                   <p className="text-[var(--text-secondary)]">Switching to <strong className="text-white">LIVE</strong> mode will use real funds from your configured account to execute grid trades. Do not enable without proper token balances.</p>
                 </div>
-             </CardContent>
-           </Card>
+              </CardContent>
+            </Card>
 
-           {/* GRID SETTINGS */}
-           <Card className="bg-[var(--bg-card)] border-[var(--border)]">
-             <CardHeader className="border-b border-[var(--border)]/50 pb-4">
-               <CardTitle className="flex items-center gap-2 text-[var(--text-primary)]">
-                 <Settings className="size-5" /> Grid Parameters
-               </CardTitle>
-             </CardHeader>
-             <CardContent className="p-6 space-y-5">
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Grid Step (%)</label>
-                    <input 
-                      type="number" step="0.1" min="0.1" max="10"
-                      value={gridForm.step_percent}
-                      onChange={(e) => setGridForm({...gridForm, step_percent: Number(e.target.value)})}
-                      className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Bullet Size (USD)</label>
-                    <input 
-                      type="number" step="1" min="1" max="10000"
-                      value={gridForm.bullet_size_usd}
-                      onChange={(e) => setGridForm({...gridForm, bullet_size_usd: Number(e.target.value)})}
-                      className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Max Bullets / Token</label>
-                    <input 
-                      type="number" step="1" min="1" max="50"
-                      value={gridForm.max_bullets}
-                      onChange={(e) => setGridForm({...gridForm, max_bullets: Number(e.target.value)})}
-                      className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Global Exps. (USD)</label>
-                    <input 
-                      type="number" step="1" min="10"
-                      value={gridForm.max_exposure_usd}
-                      onChange={(e) => setGridForm({...gridForm, max_exposure_usd: Number(e.target.value)})}
-                      className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Stop Loss (%)</label>
-                    <input 
-                      type="number" step="1" min="1" max="50"
-                      value={gridForm.stop_loss_percent}
-                      onChange={(e) => setGridForm({...gridForm, stop_loss_percent: Number(e.target.value)})}
-                      className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                    />
-                  </div>
-                </div>
+            {/* TOKEN SELECTOR */}
+            <TokenToggleCard onConfigChange={() => setNeedsRestartPersistent(true)} />
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Active Grid Tokens (CSV)</label>
-                  <input 
-                    type="text" 
-                    value={gridForm.tokens}
-                    onChange={(e) => setGridForm({...gridForm, tokens: e.target.value})}
-                    placeholder="XPR,METAL,LOAN"
-                    className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
-                  />
-                </div>
+            {/* GRID SETTINGS */}
+            <Card className="bg-[var(--bg-card)] border-[var(--border)]">
+              <CardHeader className="border-b border-[var(--border)]/50 pb-4">
+                <CardTitle className="flex items-center gap-2 text-[var(--text-primary)]">
+                  <Settings className="size-5" /> Grid Parameters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Grid Step (%)</label>
+                     <input 
+                       type="number" step="0.1" min="0.1" max="10"
+                       value={gridForm.step_percent}
+                       onChange={(e) => setGridForm({...gridForm, step_percent: Number(e.target.value)})}
+                       className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Bullet Size (USD)</label>
+                     <input 
+                       type="number" step="1" min="1" max="10000"
+                       value={gridForm.bullet_size_usd}
+                       onChange={(e) => setGridForm({...gridForm, bullet_size_usd: Number(e.target.value)})}
+                       className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Max Bullets / Token</label>
+                     <input 
+                       type="number" step="1" min="1" max="50"
+                       value={gridForm.max_bullets}
+                       onChange={(e) => setGridForm({...gridForm, max_bullets: Number(e.target.value)})}
+                       className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Global Exps. (USD)</label>
+                     <input 
+                       type="number" step="1" min="10"
+                       value={gridForm.max_exposure_usd}
+                       onChange={(e) => setGridForm({...gridForm, max_exposure_usd: Number(e.target.value)})}
+                       className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Stop Loss (%)</label>
+                     <input 
+                       type="number" step="1" min="1" max="50"
+                       value={gridForm.stop_loss_percent}
+                       onChange={(e) => setGridForm({...gridForm, stop_loss_percent: Number(e.target.value)})}
+                       className="w-full bg-[var(--bg-darkest)] border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--blue)] font-mono"
+                     />
+                   </div>
+                 </div>
 
-                <button 
-                  onClick={handleGridSave}
-                  disabled={isSavingGrid}
-                  className="w-full mt-2 bg-[var(--bg-elevated)] hover:bg-[var(--border-active)] text-white font-medium py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 border border-[var(--border)]"
-                >
-                  {isSavingGrid ? <RefreshCw className="animate-spin size-4" /> : <Lock className="size-4" />}
-                  Save Grid Configuration
-                </button>
-             </CardContent>
-           </Card>
+                 <button 
+                   onClick={handleGridSave}
+                   disabled={isSavingGrid}
+                   className="w-full mt-2 bg-[var(--bg-elevated)] hover:bg-[var(--border-active)] text-white font-medium py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 border border-[var(--border)]"
+                 >
+                   {isSavingGrid ? <RefreshCw className="animate-spin size-4" /> : <Lock className="size-4" />}
+                   Save Grid Parameters
+                 </button>
+              </CardContent>
+            </Card>
 
          </div>
 
@@ -471,6 +491,57 @@ export default function SettingsPage() {
 
          </div>
       </div>
+
+      {/* Global Alert Modal for Settings */}
+      <Dialog open={alertModal.isOpen} onOpenChange={(isOpen) => !isOpen && setAlertModal(prev => ({ ...prev, isOpen: false }))}>
+        <DialogContent className="sm:max-w-md bg-[var(--bg-darkest)] border-[var(--border)] text-white">
+          <DialogHeader>
+            <DialogTitle className={cn(
+              "flex items-center gap-2", 
+              alertModal.type === 'error' ? "text-red-500" : 
+              alertModal.type === 'warning' ? "text-[var(--orange)]" : "text-[var(--blue)]"
+            )}>
+              {alertModal.type === 'error' || alertModal.type === 'warning' ? <AlertTriangle className="size-5" /> : <Bell className="size-5" />}
+              {alertModal.title}
+            </DialogTitle>
+            <DialogDescription className="text-[var(--text-secondary)] pt-2">
+              {alertModal.message}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end mt-4">
+            {alertModal.onConfirm ? (
+              <div className="flex gap-2 w-full justify-end">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="bg-transparent border-[var(--border)] text-white hover:bg-[var(--bg-elevated)]"
+                  onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  className={alertModal.type === 'warning' ? "bg-[var(--orange)] hover:bg-[#e67e22] text-black font-bold" : "bg-[var(--blue)] hover:bg-[#2563eb] text-white"}
+                  onClick={() => {
+                    alertModal.onConfirm?.();
+                    setAlertModal(prev => ({ ...prev, isOpen: false }));
+                  }}
+                >
+                  Confirm
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                type="button" 
+                className="bg-[var(--blue)] hover:bg-[#2563eb] text-white font-medium"
+                onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                OK
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
