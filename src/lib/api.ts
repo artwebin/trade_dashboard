@@ -198,3 +198,55 @@ export async function restartBot() {
   }
   return res.json();
 }
+
+// ── Admin Control Endpoints ──────────────────────────────────────
+
+export async function adminPauseBot() {
+  const res = await fetch(`${API_BASE}/api/admin/pause`, { method: 'POST' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed to pause bot');
+  }
+  return res.json();
+}
+
+export async function adminResumeBot() {
+  const res = await fetch(`${API_BASE}/api/admin/resume`, { method: 'POST' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed to resume bot');
+  }
+  return res.json();
+}
+
+export async function adminRestartBot() {
+  const res = await fetch(`${API_BASE}/api/admin/restart`, { method: 'POST' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed to restart bot');
+  }
+  return res.json();
+}
+
+export async function adminSyncGrid() {
+  const res = await fetch(`${API_BASE}/api/admin/sync-grid`, { method: 'POST' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || 'Failed to sync grid');
+  }
+  return res.json();
+}
+
+export async function stopGridForToken(token: string) {
+  const res = await fetch(`${API_BASE}/api/grid/${token}/stop`, { method: 'POST' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || `Failed to stop grid for ${token}`);
+  }
+  return res.json();
+}
+
+export async function startGridForToken(params: StartGridParams) {
+  return startGrid(params);
+}
+

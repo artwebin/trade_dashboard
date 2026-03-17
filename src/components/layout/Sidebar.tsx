@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, LayoutDashboard, Grid2X2, History, LineChart, Settings, LogOut, User } from "lucide-react";
+import { Activity, LayoutDashboard, Grid2X2, History, LineChart, Settings, LogOut, User, Shield, BarChart3 } from "lucide-react";
 import { useBotStatus } from "@/lib/hooks";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Grids", href: "/grids", icon: Grid2X2 },
   { name: "Trades", href: "/trades", icon: History },
   { name: "Chart", href: "/chart", icon: LineChart },
   { name: "Settings", href: "/settings", icon: Settings },
+];
+
+const ADMIN_NAV_ITEMS = [
+  { name: "Analytics", href: "/analytics", icon: BarChart3, adminOnly: true },
+  { name: "Admin", href: "/admin", icon: Shield, adminOnly: true },
 ];
 
 export function Sidebar() {
@@ -21,13 +26,19 @@ export function Sidebar() {
   const { status, isLoading, isError } = useBotStatus();
   const { session, logout } = useAuth();
 
-  // Don't render sidebar on login page
-  if (pathname === "/login") return null;
+  const navItems = session?.role === 'admin'
+    ? [...BASE_NAV_ITEMS, ...ADMIN_NAV_ITEMS]
+    : BASE_NAV_ITEMS;
+
+  const isActive = (href: string) => pathname === href || (href !== '/' && pathname.startsWith(href));
 
   const handleLogout = () => {
     logout();
     router.push("/login");
   };
+
+  // Don't render sidebar on login page
+  if (pathname === "/login") return null;
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-[240px] flex flex-col bg-[var(--bg-darkest)] border-r border-border transition-transform max-md:-translate-x-full">
@@ -44,28 +55,42 @@ export function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          const active = isActive(item.href);
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-150",
-                isActive
+                active
                   ? "bg-[var(--bg-elevated)] text-white border-l-4 border-l-[var(--blue)] pl-3"
+                  : (item as any).adminOnly
+                  ? "text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-white"
               )}
             >
-              <item.icon className={cn("size-5", isActive ? "text-[var(--blue)]" : "")} />
+              <item.icon className={cn(
+                "size-5",
+                active ? "text-[var(--blue)]" : (item as any).adminOnly ? "text-purple-400" : ""
+              )} />
               {item.name}
+              {item.name === 'Admin' && (
+                <span className="ml-auto text-[9px] font-bold uppercase bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">Admin</span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* User Account Widget */}
+      {/* System Version — above the border */}
+      <div className="px-4 pt-2 pb-1 flex items-center justify-between">
+        <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Version</span>
+        <span className="text-xs font-mono text-[var(--text-muted)]">v1.0.3</span>
+      </div>
+
+      {/* User Profile — bottom anchored */}
       {session && (
-        <div className="px-4 pb-2">
+        <div className="mt-0 px-4 pb-4 pt-3 border-t border-border/50">
           <div className="flex items-center gap-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]/50 px-3 py-2.5">
             <div className="flex size-8 items-center justify-center rounded-full bg-[var(--blue)]/20 border border-[var(--blue)]/30 shrink-0">
               <User className="size-4 text-[var(--blue)]" />
@@ -89,41 +114,6 @@ export function Sidebar() {
           </div>
         </div>
       )}
-
-      {/* Bottom Status Area */}
-      <div className="p-4 border-t border-border/50 bg-[var(--bg-darkest)] mt-auto">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Status</span>
-          <span className="text-xs font-mono text-[var(--text-muted)]">v1.0.3</span>
-        </div>
-
-        <div className="flex items-center justify-between rounded-md bg-[var(--bg-card)] p-3 border border-border/50">
-          <div className="flex items-center gap-2">
-            {isLoading ? (
-              <div className="size-2 rounded-full bg-[var(--text-muted)] animate-pulse" />
-            ) : isError ? (
-              <div className="size-2 rounded-full bg-[var(--red)]" />
-            ) : (
-              <div className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--green)] opacity-75"></span>
-                <span className="relative inline-flex size-2 rounded-full bg-[var(--green)]"></span>
-              </div>
-            )}
-            <span className="text-sm font-medium text-white">
-              {isLoading ? "Connecting" : isError ? "Offline" : "Online"}
-            </span>
-          </div>
-
-          {!isLoading && status && (
-            <span className={cn(
-              "text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-[var(--bg-elevated)]",
-              status.mode === 'live' ? "text-[var(--green)]" : "text-[var(--orange)]"
-            )}>
-              {status.mode} TEST
-            </span>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }

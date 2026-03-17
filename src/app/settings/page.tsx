@@ -463,33 +463,6 @@ export default function SettingsPage() {
              </CardContent>
            </Card>
 
-           {/* SYSTEM CONTROL PANEL */}
-           <Card className="bg-[var(--bg-card)] border-[var(--border)]">
-             <CardHeader className="border-b border-[var(--border)]/50 pb-4">
-               <CardTitle className="flex items-center justify-between text-[var(--text-primary)]">
-                 <span className="flex items-center gap-2"><Power className="size-5" /> Master Engine Control</span>
-                 {restartSuccess && <span className="text-sm text-[var(--green)] flex items-center gap-1 font-bold animate-in fade-in zoom-in duration-300"><CheckCircle2 className="size-4" /> Restarted</span>}
-               </CardTitle>
-             </CardHeader>
-             <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                   <button 
-                     onClick={handleRestart}
-                     disabled={isRestarting}
-                     className="flex-1 py-3 bg-red-600/10 hover:bg-red-600/20 text-red-500 font-bold rounded-lg border border-red-500/30 transition-all flex items-center justify-center gap-2"
-                   >
-                     <RefreshCw className={`size-4 ${isRestarting ? 'animate-spin' : ''}`} />
-                     {isRestarting ? "Cycling Service..." : "Restart Trading Engine"}
-                   </button>
-                   <button 
-                     className="flex-1 py-3 bg-[var(--bg-elevated)] hover:bg-[var(--border-active)] text-[var(--text-secondary)] hover:text-white font-bold rounded-lg border border-[var(--border)] transition-all flex items-center justify-center gap-2"
-                   >
-                     <LinkIcon className="size-4" /> Restart Frontend API
-                   </button>
-                </div>
-                <p className="text-center text-xs text-[var(--text-muted)] mt-4">Manual restart hooks issue graceful kill signals (SIGTERM) to node workers to finish closing open sockets before returning 0.</p>
-             </CardContent>
-           </Card>
 
          </div>
       </div>
