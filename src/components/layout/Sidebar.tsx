@@ -65,8 +65,8 @@ export function Sidebar() {
                 active
                   ? "bg-[var(--bg-elevated)] text-white border-l-4 border-l-[var(--blue)] pl-3"
                   : (item as any).adminOnly
-                  ? "text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-white"
+                    ? "text-purple-400 hover:bg-purple-500/10 hover:text-purple-300"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-white"
               )}
             >
               <item.icon className={cn(
@@ -85,7 +85,7 @@ export function Sidebar() {
       {/* System Version — above the border */}
       <div className="px-4 pt-2 pb-1 flex items-center justify-between">
         <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Version</span>
-        <span className="text-xs font-mono text-[var(--text-muted)]">v1.0.3</span>
+        <span className="text-xs font-mono text-[var(--text-muted)]">v1.1.0</span>
       </div>
 
       {/* User Profile — bottom anchored */}
