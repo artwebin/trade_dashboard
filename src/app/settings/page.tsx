@@ -121,11 +121,24 @@ export default function SettingsPage() {
         step_percent: gridForm.step_percent,
         bullet_size_usd: gridForm.bullet_size_usd,
         max_bullets: gridForm.max_bullets,
-        max_total_exposure_usd: gridForm.max_exposure_usd,
+        max_exposure_usd: gridForm.max_exposure_usd,
         stop_loss_percent: gridForm.stop_loss_percent
       });
       setNeedsRestartPersistent(true);
-      mutate();
+      // Optimistically update the SWR cache with our saved values without
+      // re-fetching from the bot. The bot keeps old values in memory until
+      // restarted, so a re-fetch would overwrite the UI with the old values.
+      mutate(
+        (current: any) => current ? {
+          ...current,
+          grid_step_percent: gridForm.step_percent,
+          grid_bullet_size_usd: gridForm.bullet_size_usd,
+          grid_max_bullets: gridForm.max_bullets,
+          max_total_exposure_usd: gridForm.max_exposure_usd,
+          stop_loss_percent: gridForm.stop_loss_percent
+        } : current,
+        { revalidate: false }
+      );
     } catch (e) {
       showAlert("Save Failed", "Failed to save grid settings", "error");
     } finally {

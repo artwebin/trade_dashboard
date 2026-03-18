@@ -135,7 +135,7 @@ export async function updateSettingsGrid(params: {
   step_percent?: number;
   bullet_size_usd?: number;
   max_bullets?: number;
-  max_total_exposure_usd?: number;
+  max_exposure_usd?: number;
   stop_loss_percent?: number;
   grid_tokens?: string;
 }) {
