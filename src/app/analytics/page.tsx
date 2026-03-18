@@ -371,7 +371,7 @@ function LogViewer() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-96 overflow-y-auto bg-[#0a0c12] rounded-b-lg p-4 font-mono text-xs space-y-0.5 scroll-smooth">
+        <div className="h-96 overflow-y-auto bg-[#0a0c12] rounded-b-lg p-4 font-mono text-xs space-y-0.5 scroll-smooth [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[var(--border-active)] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
           {lines.length === 0 ? (
             <p className="text-[var(--text-muted)]">No log lines available...</p>
           ) : (

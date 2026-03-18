@@ -85,7 +85,7 @@ export function Sidebar() {
       {/* System Version — above the border */}
       <div className="px-4 pt-2 pb-1 flex items-center justify-between">
         <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Version</span>
-        <span className="text-xs font-mono text-[var(--text-muted)]">v1.1.0</span>
+        <span className="text-xs font-mono text-[var(--text-muted)]">v1.2.0</span>
       </div>
 
       {/* User Profile — bottom anchored */}
