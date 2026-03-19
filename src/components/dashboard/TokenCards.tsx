@@ -18,6 +18,19 @@ function TokenCardItem({ token, status, gridData, isEnabled, tokenMarket }: { to
 
   const isOOR = data?.grid_status === "oor";
   const isActive = isEnabled && data?.active;
+
+  // Recalculate bullets from orders to include limit orders as requested
+  let buyBulletsCount = data?.bullets_buy || 0;
+  let sellBulletsCount = data?.bullets_sell || 0;
+
+  if (gridData?.orders) {
+    buyBulletsCount = gridData.orders.filter(
+      (o: any) => o.status === "limit_buy_open" || o.status === "waiting_buy"
+    ).length;
+    sellBulletsCount = gridData.orders.filter(
+      (o: any) => o.status === "limit_sell_open" || o.status === "waiting_sell"
+    ).length;
+  }
   
   let minGridPrice = Infinity;
   let maxGridPrice = 0;
@@ -112,7 +125,7 @@ function TokenCardItem({ token, status, gridData, isEnabled, tokenMarket }: { to
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                 <Grid2X2 className="size-3.5" />
-                <span>{isEnabled ? (data.bullets_buy + data.bullets_sell) : 0} bullets</span>
+                <span>{isEnabled ? (buyBulletsCount + sellBulletsCount) : 0} bullets</span>
               </div>
               <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
                  {!isEnabled ? (

@@ -44,7 +44,12 @@ export function HeroSection() {
   let activeExposure = 0;
   grids.forEach(g => {
     if (g?.orders && g.orders.length > 0) {
-      activeExposure += g.total_bullets * (g.orders[0]?.bullet_size_usd || 0);
+      const bulletSize = g.orders[0]?.bullet_size_usd || 0;
+      // Exposure = bullets that have been bought (waiting_sell + limit_sell_open)
+      const sellBulletsCount = g.orders.filter(
+        (o) => o.status === "limit_sell_open" || o.status === "waiting_sell"
+      ).length;
+      activeExposure += sellBulletsCount * bulletSize;
     }
   });
 
@@ -52,7 +57,11 @@ export function HeroSection() {
     .sort((a, b) => a.timestamp - b.timestamp)
     .reduce((acc, trade) => {
       const prev = acc.length > 0 ? acc[acc.length - 1].profit : 0;
-      acc.push({ time: trade.timestamp, profit: prev + trade.profit_usd });
+      const actualProfit = (trade.actual_xmd_received !== undefined && trade.actual_xmd_received !== null &&
+                            trade.actual_xmd_spent !== undefined && trade.actual_xmd_spent !== null)
+        ? (trade.actual_xmd_received - trade.actual_xmd_spent)
+        : trade.profit_usd;
+      acc.push({ time: trade.timestamp, profit: prev + actualProfit });
       return acc;
     }, [] as { time: number; profit: number }[]);
 

@@ -21,6 +21,8 @@ interface Trade {
   sell_price: number;
   amount_token: number;
   profit_usd: number;
+  actual_xmd_spent?: number | null;
+  actual_xmd_received?: number | null;
   mode: string;
   timestamp: number;
 }
@@ -33,7 +35,9 @@ interface GridOrder {
   amount_token: number;
   bullet_size_usd: number;
   status: "waiting_buy" | "limit_buy_open" | "waiting_sell" | "limit_sell_open";
-  dex_order_id?: string | null;
+  dex_order_id?: number | null;
+  actual_xmd_spent?: number | null;
+  actual_xmd_received?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,8 +97,15 @@ function PLBreakdown({ trades }: { trades: Trade[] }) {
         : monthLabel(t.timestamp);
 
     if (!acc[key]) acc[key] = { live: 0, paper: 0, trades: 0 };
-    if (t.mode === "live") acc[key].live += t.profit_usd;
-    else acc[key].paper += t.profit_usd;
+    
+    // Calculate actual profit if fields are available, else fallback to theoretical
+    const actualProfit = (t.actual_xmd_received !== undefined && t.actual_xmd_received !== null &&
+                          t.actual_xmd_spent !== undefined && t.actual_xmd_spent !== null)
+      ? (t.actual_xmd_received - t.actual_xmd_spent)
+      : t.profit_usd;
+
+    if (t.mode === "live") acc[key].live += actualProfit;
+    else acc[key].paper += actualProfit;
     acc[key].trades++;
     return acc;
   }, {} as Record<string, { live: number; paper: number; trades: number }>);

@@ -73,7 +73,13 @@ export function RecentTradesTable() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <span className="font-semibold text-primary font-mono bg-primary/10 px-2 py-1 rounded">
-                    +{formatUsd(trade.profit_usd)}
+                    {(() => {
+                      const actualProfit = (trade.actual_xmd_received !== undefined && trade.actual_xmd_received !== null &&
+                                            trade.actual_xmd_spent !== undefined && trade.actual_xmd_spent !== null)
+                        ? (trade.actual_xmd_received - trade.actual_xmd_spent)
+                        : trade.profit_usd;
+                      return (actualProfit >= 0 ? "+" : "") + formatUsd(actualProfit);
+                    })()}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right text-muted-foreground/70">

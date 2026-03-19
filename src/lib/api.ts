@@ -39,7 +39,9 @@ export interface GridOrder {
   amount_token: number;
   bullet_size_usd: number;
   status: "waiting_buy" | "limit_buy_open" | "waiting_sell" | "limit_sell_open";
-  dex_order_id?: string | null;
+  dex_order_id?: number | null;
+  actual_xmd_spent?: number | null;
+  actual_xmd_received?: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -74,6 +76,8 @@ export interface RecentTrade {
   sell_price: number;
   amount_token: number;
   profit_usd: number;
+  actual_xmd_spent?: number | null;
+  actual_xmd_received?: number | null;
   mode: string;
   timestamp: number;
 }

@@ -26,12 +26,19 @@ export function GridVisualizer({ grid }: GridVisualizerProps) {
     .filter((o) => o.status === "limit_buy_open" || o.status === "waiting_buy")
     .sort((a, b) => b.buy_price - a.buy_price);
 
-  const bulletSize = orders[0]?.bullet_size_usd || 100;
+  // ── Bullet Counting ──
+  // limit_buy_open + waiting_buy = buy bullets
+  const buyBulletsCount = orders.filter(
+    (o) => o.status === "limit_buy_open" || o.status === "waiting_buy"
+  ).length;
 
-  // Exposure = bullets that have been bought (waiting_sell + limit_sell_open)
-  const exposure = orders.filter(
-    (o) => o.status === "waiting_sell" || o.status === "limit_sell_open"
-  ).length * bulletSize;
+  // limit_sell_open + waiting_sell = sell bullets (exposure)
+  const sellBulletsCount = orders.filter(
+    (o) => o.status === "limit_sell_open" || o.status === "waiting_sell"
+  ).length;
+
+  const bulletSize = orders[0]?.bullet_size_usd || 100;
+  const exposure = sellBulletsCount * bulletSize;
 
   return (
     <div className="flex flex-col rounded-lg border border-border/40 bg-card p-6 shadow-sm overflow-hidden">
@@ -160,11 +167,11 @@ export function GridVisualizer({ grid }: GridVisualizerProps) {
       <div className="mt-8 pt-4 border-t border-border/40 grid grid-cols-4 gap-4 text-center">
         <div>
           <p className="text-xs text-muted-foreground">Buy Bullets</p>
-          <p className="font-semibold text-primary">{grid.bullets_waiting_buy}</p>
+          <p className="font-semibold text-primary">{buyBulletsCount}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Sell Bullets</p>
-          <p className="font-semibold text-accent">{grid.bullets_waiting_sell}</p>
+          <p className="font-semibold text-accent">{sellBulletsCount}</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Today&apos;s Token P&L</p>

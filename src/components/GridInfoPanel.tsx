@@ -12,6 +12,18 @@ export function GridInfoPanel({ grid }: GridInfoPanelProps) {
   // Derive parameters from first order since the API brief implied consistent bullet sizing
   const bulletSize = grid.orders[0]?.bullet_size_usd || 100;
   
+  // limit_buy_open + waiting_buy = buy bullets
+  const buyBulletsCount = grid.orders.filter(
+    (o) => o.status === "limit_buy_open" || o.status === "waiting_buy"
+  ).length;
+
+  // limit_sell_open + waiting_sell = sell bullets (exposure)
+  const sellBulletsCount = grid.orders.filter(
+    (o) => o.status === "limit_sell_open" || o.status === "waiting_sell"
+  ).length;
+
+  const exposure = sellBulletsCount * bulletSize;
+
   // Expose step percent as an explicit feature if it was provided, otherwise we mock or derive it.
   // The brief mentions `step_percent` in the START modal but not GET /api/grid. We will calculate an approx if possible.
   const stepApprox = grid.orders.length > 1 
@@ -33,12 +45,12 @@ export function GridInfoPanel({ grid }: GridInfoPanelProps) {
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               Active Bullets
             </span>
-            <span className="font-mono">{grid.bullets_waiting_buy} Buy / {grid.bullets_waiting_sell} Sell</span>
+            <span className="font-mono">{buyBulletsCount} Buy / {sellBulletsCount} Sell</span>
           </div>
 
           <div className="flex flex-col">
              <span className="text-xs text-muted-foreground">Exposure</span>
-             <span className="font-mono">{formatUsd((grid.total_bullets - grid.bullets_waiting_buy) * bulletSize)}</span>
+             <span className="font-mono">{formatUsd(exposure)}</span>
           </div>
 
           <div className="flex flex-col">
