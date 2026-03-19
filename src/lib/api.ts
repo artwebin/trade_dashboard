@@ -38,7 +38,8 @@ export interface GridOrder {
   sell_price: number;
   amount_token: number;
   bullet_size_usd: number;
-  status: "waiting_buy" | "waiting_sell";
+  status: "waiting_buy" | "limit_buy_open" | "waiting_sell" | "limit_sell_open";
+  dex_order_id?: string | null;
   created_at: number;
   updated_at: number;
 }

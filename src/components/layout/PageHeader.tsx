@@ -6,15 +6,15 @@ import { Clock } from "lucide-react";
 interface PageHeaderProps {
   title: string;
   description?: string;
-  /** Any value that changes when fresh data arrives (e.g. status object ref, timestamp, etc.) */
+  /** Pass any value that changes when fresh data arrives (e.g. status?.timestamp) */
   lastUpdate?: unknown;
 }
 
 export function PageHeader({ title, description, lastUpdate }: PageHeaderProps) {
   const [secondsAgo, setSecondsAgo] = useState(0);
-  const lastFetchedAt = useRef<number>(Date.now());
+  const lastFetchedAt = useRef<number | null>(null);
 
-  // Reset the clock whenever the upstream data changes
+  // Reset the clock whenever upstream data changes
   useEffect(() => {
     if (lastUpdate !== undefined && lastUpdate !== null) {
       lastFetchedAt.current = Date.now();
@@ -22,13 +22,17 @@ export function PageHeader({ title, description, lastUpdate }: PageHeaderProps) 
     }
   }, [lastUpdate]);
 
-  // Tick every second so the display counts up naturally
+  // Tick every second
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsAgo(Math.floor((Date.now() - lastFetchedAt.current) / 1000));
+      if (lastFetchedAt.current !== null) {
+        setSecondsAgo(Math.floor((Date.now() - lastFetchedAt.current) / 1000));
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const isLive = secondsAgo < 8; // data fresher than 8s → show Live
 
   const formatElapsed = (s: number): string => {
     if (s < 60) return `${s}s ago`;
@@ -45,11 +49,20 @@ export function PageHeader({ title, description, lastUpdate }: PageHeaderProps) 
           <p className="text-sm text-[var(--text-secondary)] mt-1.5">{description}</p>
         )}
       </div>
-      
+
       {lastUpdate !== undefined && lastUpdate !== null && (
         <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] bg-[var(--bg-elevated)]/50 px-3 py-1.5 rounded-full border border-border/50">
-          <Clock className="size-3.5" />
-          <span>Last updated: {formatElapsed(secondsAgo)}</span>
+          {isLive ? (
+            <>
+              <span className="size-2 rounded-full bg-[var(--green)] animate-pulse" />
+              <span className="text-[var(--green)] font-medium">Live</span>
+            </>
+          ) : (
+            <>
+              <Clock className="size-3.5" />
+              <span>Last updated: {formatElapsed(secondsAgo)}</span>
+            </>
+          )}
         </div>
       )}
     </div>

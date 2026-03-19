@@ -32,7 +32,8 @@ interface GridOrder {
   sell_price: number;
   amount_token: number;
   bullet_size_usd: number;
-  status: "waiting_buy" | "waiting_sell";
+  status: "waiting_buy" | "limit_buy_open" | "waiting_sell" | "limit_sell_open";
+  dex_order_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -198,10 +199,10 @@ function GridOrdersTable({ orders }: { orders: GridOrder[] }) {
   const tokens = ["ALL", ...Array.from(new Set(orders.map((o) => o.token)))];
   const filtered = filter === "ALL" ? orders : orders.filter((o) => o.token === filter);
 
-  // Summary per token
+  // Summary per token — all 4 statuses
   const summary = orders.reduce((acc, o) => {
-    if (!acc[o.token]) acc[o.token] = { waiting_buy: 0, waiting_sell: 0 };
-    acc[o.token][o.status]++;
+    if (!acc[o.token]) acc[o.token] = { waiting_buy: 0, limit_buy_open: 0, waiting_sell: 0, limit_sell_open: 0 };
+    acc[o.token][o.status] = (acc[o.token][o.status] || 0) + 1;
     return acc;
   }, {} as Record<string, Record<string, number>>);
 
@@ -234,12 +235,14 @@ function GridOrdersTable({ orders }: { orders: GridOrder[] }) {
       </CardHeader>
       <CardContent className="p-0">
         {/* Summary strip */}
-        <div className="px-4 py-3 flex flex-wrap gap-4 bg-[var(--bg-darkest)] border-b border-[var(--border)]/30">
+        <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-2 bg-[var(--bg-darkest)] border-b border-[var(--border)]/30">
           {Object.entries(summary).map(([token, counts]) => (
-            <span key={token} className="text-xs text-[var(--text-secondary)]">
-              <span className="font-bold text-white">{token}:</span>{" "}
-              <span className="text-[var(--blue)]">{counts.waiting_buy} waiting_buy</span>{" | "}
-              <span className="text-orange-400">{counts.waiting_sell} waiting_sell</span>
+            <span key={token} className="text-xs text-[var(--text-secondary)] flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-white">{token}:</span>
+              <span className="text-green-400">{counts.limit_buy_open ?? 0} limit_buy</span>
+              <span className="text-[var(--blue)]/70">{counts.waiting_buy ?? 0} waiting_buy</span>
+              <span className="text-orange-400">{counts.limit_sell_open ?? 0} limit_sell</span>
+              <span className="text-amber-400/70">{counts.waiting_sell ?? 0} waiting_sell</span>
             </span>
           ))}
         </div>
@@ -272,11 +275,22 @@ function GridOrdersTable({ orders }: { orders: GridOrder[] }) {
                   <td className="px-4 py-2.5 text-center">
                     <span className={cn(
                       "text-[10px] font-bold uppercase px-2 py-0.5 rounded",
-                      o.status === "waiting_buy"
-                        ? "bg-blue-500/10 text-blue-400"
-                        : "bg-orange-500/10 text-orange-400"
+                      o.status === "limit_buy_open"
+                        ? "bg-green-500/15 text-green-400"
+                        : o.status === "waiting_buy" && !o.dex_order_id
+                          ? "bg-red-500/15 text-red-400"
+                          : o.status === "waiting_buy"
+                            ? "bg-blue-500/10 text-blue-400/70"
+                            : o.status === "limit_sell_open"
+                              ? "bg-orange-500/15 text-orange-400"
+                              : "bg-amber-500/10 text-amber-400/70"
                     )}>
-                      {o.status}
+                      {o.status === "limit_buy_open" ? "Limit Buy" :
+                       o.status === "limit_sell_open" ? "Limit Sell" :
+                       o.status === "waiting_buy" && !o.dex_order_id ? "Buy Retry" :
+                       o.status === "waiting_buy" ? "Wait Buy" :
+                       o.status === "waiting_sell" && !o.dex_order_id ? "Sell Pending" :
+                       "Wait Sell"}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono text-[var(--text-muted)] text-xs">{o.updated_at?.slice(0, 16) || "—"}</td>
