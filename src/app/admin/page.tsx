@@ -246,7 +246,7 @@ export default function AdminPage() {
                       label={`Stop ${token} Grid`}
                       icon={Square}
                       variant="danger"
-                      confirmMsg={{ title: `Stop ${token} Grid?`, description: `This will stop the ${token} grid and cancel all pending orders for this token.` }}
+                      confirmMsg={{ title: `Stop ${token} Grid?`, description: `This clears the bot database for ${token}. Important: Open orders on MetalX will NOT be cancelled automatically and must be closed manually.` }}
                       onClick={() => stopGridForToken(token)}
                     />
                   </div>

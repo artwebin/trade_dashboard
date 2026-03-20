@@ -121,7 +121,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         {/* System Version — above the border */}
         <div className="px-4 pt-2 pb-1 flex items-center justify-between">
           <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Version</span>
-          <span className="text-xs font-mono text-[var(--text-muted)]">v1.4.2</span>
+          <span className="text-xs font-mono text-[var(--text-muted)]">v1.4.3</span>
         </div>
 
         {/* User Profile — bottom anchored */}

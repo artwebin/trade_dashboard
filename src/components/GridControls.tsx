@@ -152,9 +152,9 @@ export function GridControls({ token }: { token: string }) {
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-destructive">Panic Stop Mode</DialogTitle>
+            <DialogTitle className="text-destructive">Stop Grid (DB Only)</DialogTitle>
             <DialogDescription>
-              Are you sure you want to stop the grid for {token}? This will cancel all pending waiting limit orders immediately.
+              Are you sure you want to stop the grid for {token}? This clears the bot database, but will NOT cancel orders on MetalX. You must cancel them manually on the exchange.
             </DialogDescription>
           </DialogHeader>
           
