@@ -73,9 +73,11 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         {/* Logo Area */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Activity className="size-5" />
-            </div>
+            <img 
+              src="/icons/metalx-bot_logo.png" 
+              alt="MetalX Bot Logo" 
+              className="size-8 object-contain rounded-sm" 
+            />
             <span className="font-bold text-lg tracking-tight text-white">MetalX Bot</span>
           </div>
           {/* Close button — mobile only */}
