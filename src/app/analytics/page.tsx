@@ -322,91 +322,189 @@ function LogViewer() {
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const fetchLogs = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetcher(`${API_BASE}/api/admin/logs?limit=${limit}`);
-      setLines(data.lines || []);
-    } catch { }
-    finally { setIsLoading(false); }
-  }, [limit]);
-
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  const [date, setDate] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [offset, setOffset] = useState(0);
+  
+  const [totalMatching, setTotalMatching] = useState(0);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [logFile, setLogFile] = useState("");
 
   useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(fetchLogs, 5000);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Reset offset when filters change
+  useEffect(() => {
+    setOffset(0);
+  }, [date, debouncedSearch, limit]);
+
+  const fetchLogs = useCallback(async (currentOffset = 0) => {
+    setIsLoading(true);
+    try {
+      const query = new URLSearchParams();
+      if (date) query.append("date", date);
+      if (debouncedSearch) query.append("search", debouncedSearch);
+      query.append("limit", limit.toString());
+      query.append("offset", currentOffset.toString());
+
+      const data = await fetcher(`${API_BASE}/api/admin/logs?${query.toString()}`);
+      
+      if (currentOffset > 0) {
+        setLines(prev => [...prev, ...(data.lines || [])]);
+      } else {
+        setLines(data.lines || []);
+      }
+      
+      setTotalMatching(data.total_matching || 0);
+      setLogFile(data.log_file || "");
+      
+      if (data.available_dates && data.available_dates.length > 0) {
+        setAvailableDates(data.available_dates);
+        if (!date) {
+           setDate(data.available_dates[0]); // Default to today
+        }
+      }
+    } catch { }
+    finally { setIsLoading(false); }
+  }, [date, debouncedSearch, limit]);
+
+  useEffect(() => {
+    fetchLogs(offset);
+  }, [offset, fetchLogs]);
+
+  useEffect(() => {
+    const isToday = availableDates.length > 0 && date === availableDates[0];
+    if (!autoRefresh || !isToday) return;
+    
+    const interval = setInterval(() => {
+      fetchLogs(0); // Auto-refresh always fetches the newest logs
+    }, 5000);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchLogs]);
+  }, [autoRefresh, date, availableDates, fetchLogs]);
 
   const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  
+  const loadMore = () => setOffset(prev => prev + limit);
 
   return (
     <Card className="bg-[var(--bg-card)] border-[var(--border)]">
       <CardHeader className="border-b border-[var(--border)]/50 pb-4">
-        <CardTitle className="flex items-center justify-between text-[var(--text-primary)] flex-wrap gap-3">
-          <span className="flex items-center gap-2">
-            <Terminal className="size-5 text-[var(--blue)]" />
-            Bot Log Viewer
-          </span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Limit selector */}
-            <div className="relative">
-              <select
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                className="appearance-none bg-[var(--bg-darkest)] border border-[var(--border)] rounded-lg px-3 py-1.5 pr-7 text-xs text-white focus:outline-none"
-              >
-                <option value={50}>50 lines</option>
-                <option value={100}>100 lines</option>
-                <option value={200}>200 lines</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 text-[var(--text-muted)] pointer-events-none" />
-            </div>
-            {/* Auto-refresh toggle */}
-            <button
-              onClick={() => setAutoRefresh((v) => !v)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5",
-                autoRefresh
-                  ? "bg-green-500/10 border-green-500/30 text-green-400"
-                  : "bg-[var(--bg-darkest)] border-[var(--border)] text-[var(--text-muted)] hover:text-white"
-              )}
-            >
-              <span className={cn("size-1.5 rounded-full", autoRefresh ? "bg-green-400 animate-pulse" : "bg-[var(--text-muted)]")} />
-              {autoRefresh ? "Auto ON" : "Auto OFF"}
-            </button>
-            {/* Manual refresh */}
-            <button
-              onClick={fetchLogs}
-              disabled={isLoading}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border)] bg-[var(--bg-darkest)] text-[var(--text-muted)] hover:text-white transition-all flex items-center gap-1.5"
-            >
-              <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-              Refresh
-            </button>
-            {/* Scroll to bottom */}
-            <button
-              onClick={scrollToBottom}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border)] bg-[var(--bg-darkest)] text-[var(--text-muted)] hover:text-white transition-all flex items-center gap-1.5"
-            >
-              <ArrowDownToLine className="size-3.5" /> Bottom
-            </button>
+        <CardTitle className="flex flex-col gap-4 text-[var(--text-primary)]">
+          
+          <div className="flex items-center justify-between flex-wrap gap-3">
+             <span className="flex items-center gap-2">
+               <Terminal className="size-5 text-[var(--blue)]" />
+               Bot Log Viewer
+             </span>
+             <span className="text-xs text-[var(--text-muted)] font-mono">
+               Showing {lines.length} of {totalMatching} lines | {logFile || "loading..."}
+             </span>
+          </div>
+          
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+             {/* Left side: Date & Search */}
+             <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <select 
+                    value={date} 
+                    onChange={e => { setDate(e.target.value); setAutoRefresh(false); }}
+                    className="appearance-none bg-[var(--bg-darkest)] border border-[var(--border)] rounded-lg px-3 py-1.5 pr-7 text-xs text-white focus:outline-none min-w-[120px]"
+                  >
+                     {availableDates.length === 0 && <option value="">Loading...</option>}
+                     {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 text-[var(--text-muted)] pointer-events-none" />
+                </div>
+                
+                <input 
+                  type="text"
+                  placeholder="Search logs..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="bg-[var(--bg-darkest)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none w-48 placeholder:text-[var(--text-muted)]"
+                />
+             </div>
+             
+             {/* Right side: Limit & Actions */}
+             <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <select
+                    value={limit}
+                    onChange={(e) => setLimit(Number(e.target.value))}
+                    className="appearance-none bg-[var(--bg-darkest)] border border-[var(--border)] rounded-lg px-3 py-1.5 pr-7 text-xs text-white focus:outline-none"
+                  >
+                    <option value={50}>50 lines</option>
+                    <option value={100}>100 lines</option>
+                    <option value={200}>200 lines</option>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 text-[var(--text-muted)] pointer-events-none" />
+                </div>
+                
+                <button
+                  onClick={() => setAutoRefresh((v) => !v)}
+                  disabled={availableDates.length > 0 && date !== availableDates[0]}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5",
+                    autoRefresh
+                      ? "bg-green-500/10 border-green-500/30 text-green-400"
+                      : "bg-[var(--bg-darkest)] border-[var(--border)] text-[var(--text-muted)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                >
+                  <span className={cn("size-1.5 rounded-full", autoRefresh ? "bg-green-400 animate-pulse" : "bg-[var(--text-muted)]")} />
+                  {autoRefresh ? "Auto ON" : "Auto OFF"}
+                </button>
+                
+                <button
+                  onClick={() => { setOffset(0); fetchLogs(0); }}
+                  disabled={isLoading}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border)] bg-[var(--bg-darkest)] text-[var(--text-muted)] hover:text-white transition-all flex items-center gap-1.5"
+                >
+                  <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+                  Refresh
+                </button>
+                
+                <button
+                  onClick={scrollToBottom}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[var(--border)] bg-[var(--bg-darkest)] text-[var(--text-muted)] hover:text-white transition-all flex items-center gap-1.5"
+                >
+                  <ArrowDownToLine className="size-3.5" /> Bottom
+                </button>
+             </div>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-96 overflow-y-auto bg-[#0a0c12] rounded-b-lg p-4 font-mono text-xs space-y-0.5 scroll-smooth [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[var(--border-active)] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-          {lines.length === 0 ? (
-            <p className="text-[var(--text-muted)]">No log lines available...</p>
-          ) : (
-            lines.map((line, i) => (
-              <div key={i} className={cn("whitespace-pre-wrap break-all leading-5", logColor(line))}>
-                {line}
-              </div>
-            ))
-          )}
-          <div ref={bottomRef} />
+        <div className="h-[500px] flex flex-col bg-[#0a0c12] rounded-b-lg">
+          <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-0.5 scroll-smooth [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[var(--border-active)] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+            {lines.length === 0 ? (
+              <p className="text-[var(--text-muted)]">No log lines available...</p>
+            ) : (
+              lines.map((line, i) => (
+                <div key={i} className={cn("whitespace-pre-wrap break-all leading-5", logColor(line))}>
+                  {line}
+                </div>
+              ))
+            )}
+            
+            {lines.length > 0 && lines.length < totalMatching && (
+               <div className="py-4 flex justify-center">
+                  <button 
+                    onClick={loadMore} 
+                    disabled={isLoading}
+                    className="text-xs font-bold bg-[var(--bg-elevated)] text-white px-4 py-2 rounded border border-[var(--border)] hover:bg-[var(--border-active)] transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? "Loading..." : "Load More"}
+                  </button>
+               </div>
+            )}
+            
+            <div ref={bottomRef} />
+          </div>
         </div>
       </CardContent>
     </Card>

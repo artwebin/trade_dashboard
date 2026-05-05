@@ -199,27 +199,30 @@ export default function AdminPage() {
                <div className="text-sm text-[var(--text-muted)]">Loading order data...</div>
             ) : (
                <>
-                 {dexStatus.db_only === 0 ? (
-                   <div className="flex items-center gap-2 text-green-400 bg-green-500/10 px-4 py-3 rounded-lg border border-green-500/20">
-                     <span className="size-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
-                     <span className="text-sm font-semibold">All {dexStatus.orders?.length || 0} orders confirmed on DEX</span>
-                   </div>
-                 ) : (
-                   <div className="flex flex-col gap-3 bg-red-500/10 p-4 rounded-lg border border-red-500/20">
-                     <div className="flex items-center gap-2 text-red-400">
-                       <AlertTriangle className="size-4" />
-                       <span className="text-sm font-bold">{dexStatus.db_only} ghost orders detected</span>
+                 {(() => {
+                   const ghostCount = dexStatus.orders?.filter((o: any) => o.dex_confirmed === false).length || 0;
+                   return ghostCount === 0 ? (
+                     <div className="flex items-center gap-2 text-green-400 bg-green-500/10 px-4 py-3 rounded-lg border border-green-500/20">
+                       <span className="size-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                       <span className="text-sm font-semibold">All {dexStatus.orders?.length || 0} orders confirmed on DEX</span>
                      </div>
-                     <ActionButton
-                        actionKey="sync-grid"
-                        label="Sync Grid with Chain (Fix Ghost Trades)"
-                        icon={Zap}
-                        variant="warning"
-                        confirmMsg={{ title: "Sync Grid?", description: "This will check all waiting_sell orders and fix those without a real on-chain position." }}
-                        onClick={adminSyncGrid}
-                      />
-                   </div>
-                 )}
+                   ) : (
+                     <div className="flex flex-col gap-3 bg-red-500/10 p-4 rounded-lg border border-red-500/20">
+                       <div className="flex items-center gap-2 text-red-400">
+                         <AlertTriangle className="size-4" />
+                         <span className="text-sm font-bold">{ghostCount} ghost orders detected</span>
+                       </div>
+                       <ActionButton
+                          actionKey="sync-grid"
+                          label="Sync Grid with Chain (Fix Ghost Trades)"
+                          icon={Zap}
+                          variant="warning"
+                          confirmMsg={{ title: "Sync Grid?", description: "This will check all waiting_sell orders and fix those without a real on-chain position." }}
+                          onClick={adminSyncGrid}
+                        />
+                     </div>
+                   );
+                 })()}
 
                  {dexStatus.orders && dexStatus.orders.length > 0 && (
                    <div className="mt-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
@@ -248,10 +251,12 @@ export default function AdminPage() {
                              <td className="py-2 font-mono text-[var(--text-muted)]">{o.dex_id || "N/A"}</td>
                              <td className="py-2 font-mono text-right">${typeof o.price === 'number' ? o.price.toFixed(4) : o.price}</td>
                              <td className="py-2 text-center">
-                               {o.chain_status ? (
+                               {o.dex_confirmed === true ? (
                                  <CheckCircle2 className="size-3.5 text-green-400 mx-auto" />
-                               ) : (
+                               ) : o.dex_confirmed === false ? (
                                  <span className="text-red-400 font-bold">✗</span>
+                               ) : (
+                                 <span className="text-[var(--text-muted)] font-bold text-sm">⏳</span>
                                )}
                              </td>
                            </tr>
