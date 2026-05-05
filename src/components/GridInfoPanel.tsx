@@ -1,12 +1,15 @@
 import { GridStatus } from "@/lib/api";
 import { formatUsd } from "@/lib/utils";
 import { Info, HelpCircle } from "lucide-react";
+import { useBotStatus } from "@/lib/hooks";
 
 interface GridInfoPanelProps {
   grid: GridStatus | undefined;
 }
 
 export function GridInfoPanel({ grid }: GridInfoPanelProps) {
+  const { status } = useBotStatus();
+  
   if (!grid) return null;
 
   // Derive parameters from first order since the API brief implied consistent bullet sizing
@@ -23,6 +26,8 @@ export function GridInfoPanel({ grid }: GridInfoPanelProps) {
   ).length;
 
   const exposure = sellBulletsCount * bulletSize;
+  const maxExposure = status?.max_exposure_usd || 0;
+  const exposurePct = maxExposure > 0 ? (exposure / maxExposure) * 100 : 0;
 
   // Expose step percent as an explicit feature if it was provided, otherwise we mock or derive it.
   // The brief mentions `step_percent` in the START modal but not GET /api/grid. We will calculate an approx if possible.
@@ -39,7 +44,7 @@ export function GridInfoPanel({ grid }: GridInfoPanelProps) {
            <span className="font-semibold text-foreground tracking-tight">Grid Info</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-6 gap-y-2">
+        <div className="flex flex-wrap items-center gap-6 gap-y-2 flex-1 justify-end mr-4">
           
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -48,9 +53,19 @@ export function GridInfoPanel({ grid }: GridInfoPanelProps) {
             <span className="font-mono">{buyBulletsCount} Buy / {sellBulletsCount} Sell</span>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-[140px]">
              <span className="text-xs text-muted-foreground">Exposure</span>
-             <span className="font-mono">{formatUsd(exposure)}</span>
+             <span className="font-mono">
+               {formatUsd(exposure)} <span className="text-muted-foreground">/ {formatUsd(maxExposure)}</span>
+             </span>
+             {maxExposure > 0 && (
+               <div className="h-1 w-full bg-secondary rounded-full overflow-hidden mt-1">
+                 <div 
+                   className={`h-full rounded-full transition-all duration-500 ${exposurePct > 90 ? 'bg-destructive' : 'bg-primary'}`} 
+                   style={{ width: `${Math.min(exposurePct, 100)}%` }} 
+                 />
+               </div>
+             )}
           </div>
 
           <div className="flex flex-col">

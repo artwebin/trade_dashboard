@@ -160,3 +160,18 @@ export function useTokenConfigs(xprAccount: string | undefined) {
     mutate
   };
 }
+
+export function useDexStatus() {
+  const { data, error, isLoading, mutate } = useSWR<any>(
+    `${API_BASE}/api/admin/dex-status`,
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+
+  return {
+    dexStatus: data,
+    isLoading,
+    isError: error,
+    mutate
+  };
+}

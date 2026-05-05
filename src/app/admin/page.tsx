@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useBotStatus, useAllGrids } from "@/lib/hooks";
+import { useBotStatus, useAllGrids, useDexStatus } from "@/lib/hooks";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -33,6 +33,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { status } = useBotStatus();
   const { grids } = useAllGrids(status ? Object.keys(status.grid_tokens) : []);
+  const { dexStatus, isLoading: isDexLoading } = useDexStatus();
 
   const [actionStates, setActionStates] = useState<Record<string, ActionResult>>({});
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -181,30 +182,87 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* ── Grid Sync ── */}
+        {/* ── DEX Order Health ── */}
         <Card className="bg-[var(--bg-card)] border-[var(--border)]">
           <CardHeader className="border-b border-[var(--border)]/50 pb-4">
-            <CardTitle className="flex items-center gap-2 text-[var(--text-primary)]">
-              <GitFork className="size-5 text-[var(--blue)]" />
-              Grid Maintenance
+            <CardTitle className="flex items-center justify-between text-[var(--text-primary)]">
+              <div className="flex items-center gap-2">
+                <Activity className="size-5 text-[var(--blue)]" />
+                DEX Order Health
+              </div>
+              {isDexLoading && <RefreshCw className="size-4 animate-spin text-[var(--text-muted)]" />}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 flex flex-col gap-3">
-            <p className="text-xs text-[var(--text-muted)] mb-1">Fix ghost trades and synchronize the grid state with on-chain positions.</p>
+          <CardContent className="p-6 flex flex-col gap-4">
+            
+            {!dexStatus ? (
+               <div className="text-sm text-[var(--text-muted)]">Loading order data...</div>
+            ) : (
+               <>
+                 {dexStatus.db_only === 0 ? (
+                   <div className="flex items-center gap-2 text-green-400 bg-green-500/10 px-4 py-3 rounded-lg border border-green-500/20">
+                     <span className="size-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
+                     <span className="text-sm font-semibold">All {dexStatus.orders?.length || 0} orders confirmed on DEX</span>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col gap-3 bg-red-500/10 p-4 rounded-lg border border-red-500/20">
+                     <div className="flex items-center gap-2 text-red-400">
+                       <AlertTriangle className="size-4" />
+                       <span className="text-sm font-bold">{dexStatus.db_only} ghost orders detected</span>
+                     </div>
+                     <ActionButton
+                        actionKey="sync-grid"
+                        label="Sync Grid with Chain (Fix Ghost Trades)"
+                        icon={Zap}
+                        variant="warning"
+                        confirmMsg={{ title: "Sync Grid?", description: "This will check all waiting_sell orders and fix those without a real on-chain position." }}
+                        onClick={adminSyncGrid}
+                      />
+                   </div>
+                 )}
 
-            <ActionButton
-              actionKey="sync-grid"
-              label="Sync Grid with Chain (Fix Ghost Trades)"
-              icon={Zap}
-              variant="warning"
-              confirmMsg={{ title: "Sync Grid?", description: "This will check all waiting_sell orders and fix those without a real on-chain position. This is the equivalent of the manual SQLite fix." }}
-              onClick={adminSyncGrid}
-            />
+                 {dexStatus.orders && dexStatus.orders.length > 0 && (
+                   <div className="mt-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                     <table className="w-full text-xs text-left">
+                       <thead className="sticky top-0 bg-[var(--bg-card)] text-[var(--text-muted)] shadow-sm">
+                         <tr>
+                           <th className="pb-2 font-medium">Token</th>
+                           <th className="pb-2 font-medium">Type</th>
+                           <th className="pb-2 font-medium">DEX ID</th>
+                           <th className="pb-2 font-medium text-right">Price</th>
+                           <th className="pb-2 font-medium text-center">Chain Status</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-[var(--border)]/50">
+                         {dexStatus.orders.map((o: any, idx: number) => (
+                           <tr key={idx} className="hover:bg-[var(--bg-elevated)] transition-colors">
+                             <td className="py-2 font-bold text-[var(--text-primary)]">{o.token}</td>
+                             <td className="py-2">
+                               <span className={cn(
+                                 "px-1.5 py-0.5 rounded uppercase text-[9px] font-bold",
+                                 String(o.type).includes("buy") ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                               )}>
+                                 {o.type}
+                               </span>
+                             </td>
+                             <td className="py-2 font-mono text-[var(--text-muted)]">{o.dex_id || "N/A"}</td>
+                             <td className="py-2 font-mono text-right">${typeof o.price === 'number' ? o.price.toFixed(4) : o.price}</td>
+                             <td className="py-2 text-center">
+                               {o.chain_status ? (
+                                 <CheckCircle2 className="size-3.5 text-green-400 mx-auto" />
+                               ) : (
+                                 <span className="text-red-400 font-bold">✗</span>
+                               )}
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
+                 )}
+               </>
+            )}
 
-            <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 px-4 py-3 text-xs text-amber-400/80 flex items-start gap-2">
-              <AlertTriangle className="size-3.5 mt-0.5 shrink-0" />
-              Use this when bot shows waiting_sell orders that have no corresponding on-chain position.
-            </div>
           </CardContent>
         </Card>
 
