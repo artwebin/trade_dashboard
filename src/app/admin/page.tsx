@@ -241,14 +241,25 @@ export default function AdminPage() {
                            <tr key={idx} className="hover:bg-[var(--bg-elevated)] transition-colors">
                              <td className="py-2 font-bold text-[var(--text-primary)]">{o.token}</td>
                              <td className="py-2">
-                               <span className={cn(
-                                 "px-1.5 py-0.5 rounded uppercase text-[9px] font-bold",
-                                 String(o.type).includes("buy") ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                               )}>
-                                 {o.type}
-                               </span>
+                               {(() => {
+                                 const sv = o.status || o.type || "";
+                                 let label = sv;
+                                 let circleClass = "bg-[var(--text-muted)]";
+                                 
+                                 if (sv === "limit_buy_open") { label = "BUY"; circleClass = "bg-green-500"; }
+                                 else if (sv === "limit_sell_open") { label = "SELL"; circleClass = "bg-orange-500"; }
+                                 else if (sv === "waiting_buy") { label = "BUY pending"; circleClass = "bg-[var(--text-muted)]"; }
+                                 else if (sv === "waiting_sell") { label = "SELL pending"; circleClass = "bg-[var(--text-muted)]"; }
+                                 
+                                 return (
+                                   <div className="flex items-center gap-1.5">
+                                     <span className={cn("size-2 rounded-full", circleClass)} />
+                                     <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">{label}</span>
+                                   </div>
+                                 );
+                               })()}
                              </td>
-                             <td className="py-2 font-mono text-[var(--text-muted)]">{o.dex_id || "N/A"}</td>
+                             <td className="py-2 font-mono text-[var(--text-muted)]">{o.dex_order_id || o.dex_id || "N/A"}</td>
                              <td className="py-2 font-mono text-right">${typeof o.price === 'number' ? o.price.toFixed(4) : o.price}</td>
                              <td className="py-2 text-center">
                                {o.dex_confirmed === true ? (
