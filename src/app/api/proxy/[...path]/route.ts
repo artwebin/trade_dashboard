@@ -53,7 +53,10 @@ async function proxyRequest(
 
     const response = await fetch(targetUrl, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.BOT_API_KEY || ""
+      },
       body,
     });
 

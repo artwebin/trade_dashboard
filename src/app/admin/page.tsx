@@ -260,7 +260,9 @@ export default function AdminPage() {
                                })()}
                              </td>
                              <td className="py-2 font-mono text-[var(--text-muted)]">{o.dex_order_id || o.dex_id || "N/A"}</td>
-                             <td className="py-2 font-mono text-right">${typeof o.price === 'number' ? o.price.toFixed(4) : o.price}</td>
+                             <td className="py-2 font-mono text-right">
+                               ${Number(o.price || (String(o.status || o.type).includes("buy") ? o.buy_price : o.sell_price) || o.sell_price || o.buy_price || 0).toFixed(4)}
+                             </td>
                              <td className="py-2 text-center">
                                {o.dex_confirmed === true ? (
                                  <CheckCircle2 className="size-3.5 text-green-400 mx-auto" />

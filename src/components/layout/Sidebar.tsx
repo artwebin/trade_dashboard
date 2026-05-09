@@ -73,10 +73,10 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         {/* Logo Area */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <img 
-              src="/icons/metalx-bot_logo.png" 
-              alt="MetalX Bot Logo" 
-              className="size-8 object-contain rounded-sm" 
+            <img
+              src="/icons/metalx-bot_logo.png"
+              alt="MetalX Bot Logo"
+              className="size-8 object-contain rounded-sm"
             />
             <span className="font-bold text-lg tracking-tight text-white">MetalX Bot</span>
           </div>
@@ -123,7 +123,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         {/* System Version — above the border */}
         <div className="px-4 pt-2 pb-1 flex items-center justify-between">
           <span className="text-xs font-semibold tracking-wider text-[var(--text-muted)] uppercase">System Version</span>
-          <span className="text-xs font-mono text-[var(--text-muted)]">v1.4.3</span>
+          <span className="text-xs font-mono text-[var(--text-muted)]">v1.4.5</span>
         </div>
 
         {/* User Profile — bottom anchored */}
